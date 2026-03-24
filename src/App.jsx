@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 // =====================================================
 //  ★ 変更箇所（3か所）
 // =====================================================
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzolG8RaU4-VDO4T-GHfOgBym-hKu-j6zkrqZHFEPiJJ8EJJXHubCMW3OUQ9HZCpQV0zg/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzf-T6-DqvsWFvFLqu2he6-EEuAIA8H5pQX-pMLzt5MISkICd2_nQRomYMGuSGcbNGcmQ/exec";
 
 const FORMS = {
   chuto: { label: "中途用フォーム", url: "https://forms.gle/2hCrxjyyHc1D3n9h9" },
