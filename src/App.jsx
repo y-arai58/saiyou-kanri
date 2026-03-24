@@ -295,6 +295,25 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
   const c = FLOW_COLORS[app.flow];
   const [pendingDate, setPendingDate] = useState(false);
   const [interviewDate, setInterviewDate] = useState("");
+  const [interviewTime, setInterviewTime] = useState("");
+
+  const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
+    const h = String(Math.floor(i / 2)).padStart(2, "0");
+    const m = i % 2 === 0 ? "00" : "30";
+    return `${h}:${m}`;
+  });
+
+  const handleDateChange = (date) => {
+    const combined = date && interviewTime ? `${date}T${interviewTime}` : "";
+    setInterviewDate(combined);
+  };
+  const handleTimeChange = (time) => {
+    setInterviewTime(time);
+    const dateOnly = interviewDate ? interviewDate.split("T")[0] : "";
+    const combined = dateOnly && time ? `${dateOnly}T${time}` : "";
+    setInterviewDate(combined);
+  };
+  const resetDate = () => { setInterviewDate(""); setInterviewTime(""); };
 
   return (
     <div style={{
@@ -381,22 +400,32 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
               {next && step?.dateInput && pendingDate ? (
                 <div style={{ background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>{step.dateLabel}を入力してください</div>
-                  <input
-                    type="datetime-local"
-                    value={interviewDate}
-                    onChange={e => setInterviewDate(e.target.value)}
-                    style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, marginBottom: 10, display: "block" }}
-                  />
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <input
+                      type="date"
+                      value={interviewDate ? interviewDate.split("T")[0] : ""}
+                      onChange={e => handleDateChange(e.target.value)}
+                      style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13 }}
+                    />
+                    <select
+                      value={interviewTime}
+                      onChange={e => handleTimeChange(e.target.value)}
+                      style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, minWidth: 100 }}
+                    >
+                      <option value="">時刻を選択</option>
+                      {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => { onAdvance(app.id, interviewDate, step.dateField); setPendingDate(false); setInterviewDate(""); }}
+                      onClick={() => { onAdvance(app.id, interviewDate, step.dateField); setPendingDate(false); resetDate(); }}
                       disabled={loading || !interviewDate}
                       style={{
                         padding: "8px 18px", borderRadius: 6, border: "none",
                         background: interviewDate ? c : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: interviewDate ? "pointer" : "default",
                       }}
                     >確定 → {next.label}</button>
-                    <button onClick={() => { setPendingDate(false); setInterviewDate(""); }} style={{
+                    <button onClick={() => { setPendingDate(false); resetDate(); }} style={{
                       padding: "8px 14px", borderRadius: 6, border: "1px solid #ddd",
                       background: "#fff", fontSize: 13, cursor: "pointer",
                     }}>キャンセル</button>
@@ -527,6 +556,81 @@ function AddModal({ onClose, onAdd, saving }) {
 }
 
 // =====================================================
+//  カレンダービュー
+// =====================================================
+function CalendarView({ applicants }) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+
+  const events = [];
+  for (const app of applicants) {
+    const dateFields = getFlowDateFields(app.flow);
+    for (const { field, label } of dateFields) {
+      if (app[field]) {
+        const d = new Date(app[field]);
+        if (!isNaN(d.getTime())) {
+          events.push({ date: d, name: app.name, label, flow: app.flow, color: FLOW_COLORS[app.flow] });
+        }
+      }
+    }
+  }
+
+  const prevMonth = () => { if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1); };
+  const nextMonth = () => { if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1); };
+
+  const firstDow = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const cells = [...Array(firstDow).fill(null), ...Array.from({ length: totalDays }, (_, i) => i + 1)];
+
+  const getEventsForDay = (day) => events.filter(e =>
+    e.date.getFullYear() === year && e.date.getMonth() === month && e.date.getDate() === day
+  );
+
+  const MONTH_NAMES = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  const DOW_NAMES = ["日","月","火","水","木","金","土"];
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+        <button onClick={prevMonth} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 16 }}>‹</button>
+        <div style={{ fontWeight: 700, fontSize: 18 }}>{year}年 {MONTH_NAMES[month]}</div>
+        <button onClick={nextMonth} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 16 }}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: "#e0e0e0", borderRadius: 8, overflow: "hidden", border: "1px solid #e0e0e0" }}>
+        {DOW_NAMES.map((d, i) => (
+          <div key={d} style={{ background: "#f5f5f5", padding: "8px 4px", textAlign: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? "#e53e3e" : i === 6 ? "#3182ce" : "#666" }}>{d}</div>
+        ))}
+        {cells.map((day, i) => {
+          if (day === null) return <div key={`e${i}`} style={{ background: "#fafafa", minHeight: 90 }} />;
+          const dayEvents = getEventsForDay(day);
+          const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+          const dow = (firstDow + day - 1) % 7;
+          return (
+            <div key={day} style={{ background: "#fff", minHeight: 90, padding: "6px 5px" }}>
+              <div style={{
+                fontSize: 12, fontWeight: isToday ? 800 : 500,
+                color: isToday ? "#fff" : dow === 0 ? "#e53e3e" : dow === 6 ? "#3182ce" : "#333",
+                background: isToday ? "#1a1a1a" : "transparent",
+                width: 22, height: 22, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4,
+              }}>{day}</div>
+              {dayEvents.map((ev, j) => (
+                <div key={j} title={`${ev.name}（${ev.label}）`} style={{
+                  fontSize: 10, fontWeight: 700, color: "#fff",
+                  background: ev.color, borderRadius: 3, padding: "2px 5px",
+                  marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>{ev.name}</div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
 //  メインアプリ
 // =====================================================
 export default function App() {
@@ -539,6 +643,7 @@ export default function App() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showDone, setShowDone] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
 
   const load = useCallback(async () => {
     setFetchState("loading");
@@ -605,6 +710,16 @@ export default function App() {
     <div style={{ fontFamily: "'Hiragino Sans', 'Noto Sans JP', sans-serif", background: "#f2f2f0", minHeight: "100vh", paddingBottom: 60 }}>
       <div style={{ background: "#1a1a1a", color: "#fff", padding: "16px 24px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>採用管理</div>
+        <div style={{ display: "flex", gap: 2, background: "#2a2a2a", borderRadius: 8, padding: 3 }}>
+          {[["list", "リスト"], ["calendar", "カレンダー"]].map(([key, label]) => (
+            <button key={key} onClick={() => setActiveTab(key)} style={{
+              padding: "5px 14px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 700,
+              background: activeTab === key ? "#fff" : "transparent",
+              color: activeTab === key ? "#1a1a1a" : "#aaa",
+              cursor: "pointer",
+            }}>{label}</button>
+          ))}
+        </div>
         <div style={{ flex: 1 }} />
         {fetchState === "loading" && <span style={{ fontSize: 12, color: "#aaa" }}>読込中…</span>}
         {fetchState === "error" && <span style={{ fontSize: 12, color: "#f87171" }}>⚠ スプシ接続エラー — GAS URLを確認してください</span>}
@@ -613,7 +728,9 @@ export default function App() {
         <button onClick={() => setShowAdd(true)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: "#fff", color: "#1a1a1a", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ 追加</button>
       </div>
 
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "20px 16px 0" }}>
+      {activeTab === "calendar" && <CalendarView applicants={applicants} />}
+
+      {activeTab === "list" && <div style={{ maxWidth: 820, margin: "0 auto", padding: "20px 16px 0" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="氏名で検索…"
             style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, width: 160 }} />
@@ -657,7 +774,7 @@ export default function App() {
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onAdd={addApp} saving={saving} />}
     </div>
