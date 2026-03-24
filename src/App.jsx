@@ -63,16 +63,14 @@ const FLOWS = {
   ],
   // 長期インターン：ゼロワン経由（エンジニア）※デザイナー不可
   intern_zero_eng: [
-    { id: "form_sent", label: "フォーム送付済", action: "長期インターン用フォーム（エンジニア）を送付する（ゼロワン経由）", form: "interneng" },
-    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
+    { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
     { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
   ],
   // 長期インターン：ゼロワン経由（広報・マーケター）
   intern_zero_mar: [
-    { id: "form_sent", label: "フォーム送付済", action: "長期インターン用フォーム（広報・マーケター）を送付する（ゼロワン経由）", form: "internmar" },
-    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
+    { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
     { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
