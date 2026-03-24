@@ -10,8 +10,8 @@ const FORMS = {
 };
 
 const CH = {
-  form_entry: { label: "採用フォーム入力通知", url: "https://third-scope.slack.com/archives/C0AJWFB9NDD" }
-}
+  form_entry: { label: "採用フォーム入力通知", url: "https://third-scope.slack.com/archives/C0AJWFB9NDD" },
+};
 
 const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷"];
 
@@ -43,12 +43,14 @@ const FLOWS = {
   //新卒: 本選考
   shinsotsu_honsenkou: [
     { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付する", form: "shinsotsu" },
-    { id: "", label: "フォーム入力待ち", action: "入力されたらchに通知が来るので確認し、ステータスを更新", ch: "form_entry" },
+    { id: "entry_done", label: "フォーム入力待ち", action: "入力されたらchに通知が来るので確認し、ステータスを更新", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
     { id: "shorui_pass", label: "書類通過・日程調整中", action: "通過メール＋1次面接の日程調整を同メールで送付する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
-    { id: "interview1", label: "1次面接実施済", action: "1次選考の合否を判断する" },
+    { id: "interview1", label: "1次面接（日程確定済み）", action: "面接を実施する" },
+    { id: "interview1_judge", label: "1次面接実施済み", action: "1次選考の合否を判断する" },
     { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
-    { id: "interview2", label: "2次面接実施済", action: "2次選考の合否を判断する" },
+    { id: "interview2", label: "2次面接（日程確定済み）", action: "面接を実施する" },
+    { id: "interview2_judge", label: "2次面接実施済み", action: "2次選考の合否を判断する" },
     { id: "done", label: "採用決定", action: null },
   ],
   // 長期インターン：採用サイト経由（エンジニア・デザイナー）
@@ -341,6 +343,15 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
                   <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 12, color: "#555" }}>{FORMS[step.form].label}</span>
                     <CopyBtn url={FORMS[step.form].url} />
+                  </div>
+                )}
+                {step.ch && (
+                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, color: "#555" }}>{CH[step.ch].label}</span>
+                    <a href={CH[step.ch].url} target="_blank" rel="noreferrer"
+                      style={{ fontSize: 11, padding: "3px 10px", borderRadius: 4, border: "1px solid #ccc", background: "#f5f5f5", color: "#555", cursor: "pointer", fontWeight: 600, textDecoration: "none" }}>
+                      chを開く
+                    </a>
                   </div>
                 )}
               </div>
