@@ -49,7 +49,8 @@ const FLOWS = {
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（エンジニア）を送付する", form: "interneng" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
@@ -57,21 +58,24 @@ const FLOWS = {
   intern_site_mar: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（広報・マーケター）を送付する", form: "internmar" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
   // 長期インターン：ゼロワン経由（エンジニア）※デザイナー不可
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
   ],
   // 長期インターン：ゼロワン経由（広報・マーケター）
   intern_zero_mar: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
   ],
@@ -126,6 +130,23 @@ async function apiPost(body) {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${GAS_URL}?${qs}`);
   return res.json();
+}
+
+// =====================================================
+//  ユーティリティ
+// =====================================================
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Tokyo" });
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" });
 }
 
 // =====================================================
@@ -210,12 +231,14 @@ function NoteEditor({ note, onSave }) {
 // =====================================================
 //  応募者カード
 // =====================================================
-function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, onToggle, loading }) {
+function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, expanded, onToggle, loading }) {
   const steps = FLOWS[app.flow] ?? [];
   const step = steps[app.stepIdx];
   const next = steps[app.stepIdx + 1];
   const isDone = step?.id === "done" || app.rejected;
   const c = FLOW_COLORS[app.flow];
+  const [pendingDate, setPendingDate] = useState(false);
+  const [interviewDate, setInterviewDate] = useState("");
 
   return (
     <div style={{
@@ -272,7 +295,8 @@ function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, on
 
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10, display: "flex", gap: 16, flexWrap: "wrap" }}>
             <span>応募経路: {app.source}</span>
-            <span>応募日: {app.created}</span>
+            <span>応募日: {formatDate(app.created)}</span>
+            {app.interviewDate && <span style={{ color: "#6d28d9", fontWeight: 700 }}>面接日時: {formatDateTime(app.interviewDate)}</span>}
           </div>
 
           <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
@@ -286,17 +310,57 @@ function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, on
           <NoteEditor note={app.note} onSave={note => onEditNote(app.id, note)} />
 
           {!isDone && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-              {next && (
-                <button onClick={() => onAdvance(app.id)} disabled={loading} style={{
-                  padding: "9px 20px", borderRadius: 6, border: "none",
-                  background: c, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
-                }}>次へ → {next.label}</button>
+            <div style={{ marginTop: 12 }}>
+              {next && step?.dateInput && pendingDate ? (
+                <div style={{ background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>面接日時を入力してください</div>
+                  <input
+                    type="datetime-local"
+                    value={interviewDate}
+                    onChange={e => setInterviewDate(e.target.value)}
+                    style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, marginBottom: 10, display: "block" }}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => { onAdvance(app.id, interviewDate); setPendingDate(false); setInterviewDate(""); }}
+                      disabled={loading || !interviewDate}
+                      style={{
+                        padding: "8px 18px", borderRadius: 6, border: "none",
+                        background: interviewDate ? c : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: interviewDate ? "pointer" : "default",
+                      }}
+                    >確定 → {next.label}</button>
+                    <button onClick={() => { setPendingDate(false); setInterviewDate(""); }} style={{
+                      padding: "8px 14px", borderRadius: 6, border: "1px solid #ddd",
+                      background: "#fff", fontSize: 13, cursor: "pointer",
+                    }}>キャンセル</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {next && (
+                    <button
+                      onClick={() => step?.dateInput ? setPendingDate(true) : onAdvance(app.id)}
+                      disabled={loading}
+                      style={{
+                        padding: "9px 20px", borderRadius: 6, border: "none",
+                        background: c, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                      }}
+                    >次へ → {next.label}</button>
+                  )}
+                  <button onClick={() => onReject(app.id)} disabled={loading} style={{
+                    padding: "9px 18px", borderRadius: 6, border: "1px solid #e0e0e0",
+                    background: "#fff", color: "#c0392b", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                  }}>不合格・終了</button>
+                </div>
               )}
-              <button onClick={() => onReject(app.id)} disabled={loading} style={{
-                padding: "9px 18px", borderRadius: 6, border: "1px solid #e0e0e0",
-                background: "#fff", color: "#c0392b", fontWeight: 600, fontSize: 13, cursor: "pointer",
-              }}>不合格・終了</button>
+              {app.stepIdx > 0 && !pendingDate && (
+                <div style={{ marginTop: 8 }}>
+                  <button onClick={() => onStepBack(app.id)} disabled={loading} style={{
+                    fontSize: 11, color: "#bbb", background: "none", border: "none",
+                    cursor: "pointer", padding: 0, textDecoration: "underline",
+                  }}>← 前のステップに戻す</button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -389,10 +453,22 @@ export default function App() {
 
   useEffect(() => { load(); }, [load]);
 
-  const advance = async (id) => {
+  const advance = async (id, interviewDate) => {
     const app = applicants.find(a => a.id == id);
     if (!app) return;
     const newIdx = app.stepIdx + 1;
+    setLoadingId(id);
+    const body = { action: "update", id, stepIdx: newIdx };
+    if (interviewDate) body.interviewDate = interviewDate;
+    const res = await apiPost(body);
+    if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, stepIdx: newIdx, ...(interviewDate ? { interviewDate } : {}) } : a));
+    setLoadingId(null);
+  };
+
+  const stepBack = async (id) => {
+    const app = applicants.find(a => a.id == id);
+    if (!app || app.stepIdx <= 0) return;
+    const newIdx = app.stepIdx - 1;
     setLoadingId(id);
     const res = await apiPost({ action: "update", id, stepIdx: newIdx });
     if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, stepIdx: newIdx } : a));
@@ -462,7 +538,7 @@ export default function App() {
         )}
         {active.map(app => (
           <Card key={app.id} app={app}
-            onAdvance={advance} onReject={reject} onEditNote={editNote} onEditMember={editMember}
+            onAdvance={advance} onStepBack={stepBack} onReject={reject} onEditNote={editNote} onEditMember={editMember}
             expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
             loading={loadingId === app.id} />
         ))}
@@ -475,7 +551,7 @@ export default function App() {
             }}>{showDone ? "▾" : "▸"} 完了・終了 ({done.length})</button>
             {showDone && done.map(app => (
               <Card key={app.id} app={app}
-                onAdvance={advance} onReject={reject} onEditNote={editNote} onEditMember={editMember}
+                onAdvance={advance} onStepBack={stepBack} onReject={reject} onEditNote={editNote} onEditMember={editMember}
                 expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
                 loading={loadingId === app.id} />
             ))}
