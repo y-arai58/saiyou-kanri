@@ -298,11 +298,11 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
   const [interviewTime, setInterviewTime] = useState("");
   const interviewDate = interviewDateOnly && interviewTime ? `${interviewDateOnly}T${interviewTime}` : "";
 
-  const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
-    const h = String(Math.floor(i / 2)).padStart(2, "0");
+  const TIME_SLOTS = Array.from({ length: 17 }, (_, i) => {
+    const h = String(11 + Math.floor(i / 2)).padStart(2, "0");
     const m = i % 2 === 0 ? "00" : "30";
     return `${h}:${m}`;
-  });
+  }); // 11:00〜19:00
 
   const resetDate = () => { setInterviewDateOnly(""); setInterviewTime(""); };
 
@@ -400,7 +400,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
                     />
                     <select
                       value={interviewTime}
-                      onChange={e => handleTimeChange(e.target.value)}
+                      onChange={e => setInterviewTime(e.target.value)}
                       style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, minWidth: 100 }}
                     >
                       <option value="">時刻を選択</option>
