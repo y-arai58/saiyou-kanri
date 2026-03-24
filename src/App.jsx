@@ -295,6 +295,25 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
   const c = FLOW_COLORS[app.flow];
   const [pendingDate, setPendingDate] = useState(false);
   const [interviewDate, setInterviewDate] = useState("");
+  const [interviewTime, setInterviewTime] = useState("");
+
+  const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
+    const h = String(Math.floor(i / 2)).padStart(2, "0");
+    const m = i % 2 === 0 ? "00" : "30";
+    return `${h}:${m}`;
+  });
+
+  const handleDateChange = (date) => {
+    const combined = date && interviewTime ? `${date}T${interviewTime}` : "";
+    setInterviewDate(combined);
+  };
+  const handleTimeChange = (time) => {
+    setInterviewTime(time);
+    const dateOnly = interviewDate ? interviewDate.split("T")[0] : "";
+    const combined = dateOnly && time ? `${dateOnly}T${time}` : "";
+    setInterviewDate(combined);
+  };
+  const resetDate = () => { setInterviewDate(""); setInterviewTime(""); };
 
   return (
     <div style={{
@@ -381,22 +400,32 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
               {next && step?.dateInput && pendingDate ? (
                 <div style={{ background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>{step.dateLabel}を入力してください</div>
-                  <input
-                    type="datetime-local"
-                    value={interviewDate}
-                    onChange={e => setInterviewDate(e.target.value)}
-                    style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, marginBottom: 10, display: "block" }}
-                  />
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <input
+                      type="date"
+                      value={interviewDate ? interviewDate.split("T")[0] : ""}
+                      onChange={e => handleDateChange(e.target.value)}
+                      style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13 }}
+                    />
+                    <select
+                      value={interviewTime}
+                      onChange={e => handleTimeChange(e.target.value)}
+                      style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, minWidth: 100 }}
+                    >
+                      <option value="">時刻を選択</option>
+                      {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => { onAdvance(app.id, interviewDate, step.dateField); setPendingDate(false); setInterviewDate(""); }}
+                      onClick={() => { onAdvance(app.id, interviewDate, step.dateField); setPendingDate(false); resetDate(); }}
                       disabled={loading || !interviewDate}
                       style={{
                         padding: "8px 18px", borderRadius: 6, border: "none",
                         background: interviewDate ? c : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: interviewDate ? "pointer" : "default",
                       }}
                     >確定 → {next.label}</button>
-                    <button onClick={() => { setPendingDate(false); setInterviewDate(""); }} style={{
+                    <button onClick={() => { setPendingDate(false); resetDate(); }} style={{
                       padding: "8px 14px", borderRadius: 6, border: "1px solid #ddd",
                       background: "#fff", fontSize: 13, cursor: "pointer",
                     }}>キャンセル</button>
