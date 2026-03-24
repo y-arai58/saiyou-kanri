@@ -45,35 +45,61 @@ const FLOWS = {
     { id: "interview2", label: "2次面接実施済", action: "2次選考の合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
-  // 長期インターン：採用サイト経由（エンジニア・デザイナー）
+  // 長期インターン：採用サイト経由・インターン応募（エンジニア・デザイナー）
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（エンジニア）を送付する", form: "interneng" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
-  // 長期インターン：採用サイト経由（広報・マーケター）
+  // 長期インターン：採用サイト経由・インターン応募（広報・マーケター）
   intern_site_mar: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（広報・マーケター）を送付する", form: "internmar" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
   // 長期インターン：ゼロワン経由（エンジニア）※デザイナー不可
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
   ],
   // 長期インターン：ゼロワン経由（広報・マーケター）
   intern_zero_mar: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を調整する" },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
+  ],
+  // 長期インターン：採用サイト経由・会社説明（エンジニア）
+  intern_site_kaisetsu_eng: [
+    { id: "entry", label: "エントリー受付", action: "会社説明の日程を調整する" },
+    { id: "schedule", label: "会社説明日程調整中", action: "会社説明の日程を確定する" },
+    { id: "kaisetsu", label: "会社説明実施済", action: "インターン応募を促す" },
+    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
+    { id: "interview_schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
+    { id: "interview", label: "面接実施済", action: "合否を判断する" },
+    { id: "done", label: "採用完了", action: null },
+  ],
+  // 長期インターン：採用サイト経由・会社説明（広報・マーケター）
+  intern_site_kaisetsu_mar: [
+    { id: "entry", label: "エントリー受付", action: "会社説明の日程を調整する" },
+    { id: "schedule", label: "会社説明日程調整中", action: "会社説明の日程を確定する" },
+    { id: "kaisetsu", label: "会社説明実施済", action: "インターン応募を促す" },
+    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
+    { id: "interview_schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
+    { id: "interview", label: "面接実施済", action: "合否を判断する" },
+    { id: "done", label: "採用完了", action: null },
   ],
 };
 
@@ -86,6 +112,8 @@ const FLOW_LABELS = {
   intern_site_mar: "長期インターン｜採用サイト・マーケ",
   intern_zero_eng: "長期インターン｜ゼロワン・エンジニア",
   intern_zero_mar: "長期インターン｜ゼロワン・マーケ",
+  intern_site_kaisetsu_eng: "長期インターン｜採用サイト・会社説明・エンジニア",
+  intern_site_kaisetsu_mar: "長期インターン｜採用サイト・会社説明・マーケ",
 };
 
 const FLOW_COLORS = {
@@ -97,6 +125,8 @@ const FLOW_COLORS = {
   intern_site_mar: "#b45309",
   intern_zero_eng: "#7c3aed",
   intern_zero_mar: "#d4830a",
+  intern_site_kaisetsu_eng: "#0d9488",
+  intern_site_kaisetsu_mar: "#059669",
 };
 
 // 追加モーダル用：グループ化した選択肢（応募経路はインターン選択時に別途切り替え）
@@ -112,10 +142,16 @@ const FLOW_OPTION_LABELS = {
   intern_mar: "長期インターン｜マーケ",
 };
 
-// baseFlow + internRoute → 実際のフローキー・応募経路
-function resolveFlow(baseFlow, internRoute) {
-  if (baseFlow === "intern_eng") return internRoute === "ゼロワン" ? "intern_zero_eng" : "intern_site_eng";
-  if (baseFlow === "intern_mar") return internRoute === "ゼロワン" ? "intern_zero_mar" : "intern_site_mar";
+// baseFlow + internRoute + siteSubType → 実際のフローキー・応募経路
+function resolveFlow(baseFlow, internRoute, siteSubType) {
+  if (baseFlow === "intern_eng") {
+    if (internRoute === "ゼロワン") return "intern_zero_eng";
+    return siteSubType === "会社説明" ? "intern_site_kaisetsu_eng" : "intern_site_eng";
+  }
+  if (baseFlow === "intern_mar") {
+    if (internRoute === "ゼロワン") return "intern_zero_mar";
+    return siteSubType === "会社説明" ? "intern_site_kaisetsu_mar" : "intern_site_mar";
+  }
   return baseFlow;
 }
 function resolveSource(baseFlow, internRoute) {
@@ -318,13 +354,15 @@ function AddModal({ onClose, onAdd, saving }) {
   const [name, setName] = useState("");
   const [baseFlow, setBaseFlow] = useState("shinsotsu_honsenkou");
   const [internRoute, setInternRoute] = useState("採用サイト");
+  const [siteSubType, setSiteSubType] = useState("インターン応募");
   const [member, setMember] = useState(MEMBERS[0]);
   const [note, setNote] = useState("");
   const isIntern = baseFlow === "intern_eng" || baseFlow === "intern_mar";
+  const isSite = isIntern && internRoute === "採用サイト";
   const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
   const handleAdd = () => {
     if (!name) return;
-    onAdd({ name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member, note });
+    onAdd({ name, flow: resolveFlow(baseFlow, internRoute, siteSubType), source: resolveSource(baseFlow, internRoute), member, note });
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
@@ -357,6 +395,21 @@ function AddModal({ onClose, onAdd, saving }) {
                   background: internRoute === r ? "#1a1a1a" : "#fff",
                   color: internRoute === r ? "#fff" : "#555",
                 }}>{r}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        {isSite && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>フロー種別</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["インターン応募", "会社説明"].map(t => (
+                <button key={t} onClick={() => setSiteSubType(t)} style={{
+                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  border: siteSubType === t ? "2px solid #0d9488" : "1px solid #ddd",
+                  background: siteSubType === t ? "#0d9488" : "#fff",
+                  color: siteSubType === t ? "#fff" : "#555",
+                }}>{t}</button>
               ))}
             </div>
           </div>
