@@ -294,8 +294,9 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
   const isDone = step?.id === "done" || app.rejected;
   const c = FLOW_COLORS[app.flow];
   const [pendingDate, setPendingDate] = useState(false);
-  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewDateOnly, setInterviewDateOnly] = useState("");
   const [interviewTime, setInterviewTime] = useState("");
+  const interviewDate = interviewDateOnly && interviewTime ? `${interviewDateOnly}T${interviewTime}` : "";
 
   const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
     const h = String(Math.floor(i / 2)).padStart(2, "0");
@@ -303,17 +304,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
     return `${h}:${m}`;
   });
 
-  const handleDateChange = (date) => {
-    const combined = date && interviewTime ? `${date}T${interviewTime}` : "";
-    setInterviewDate(combined);
-  };
-  const handleTimeChange = (time) => {
-    setInterviewTime(time);
-    const dateOnly = interviewDate ? interviewDate.split("T")[0] : "";
-    const combined = dateOnly && time ? `${dateOnly}T${time}` : "";
-    setInterviewDate(combined);
-  };
-  const resetDate = () => { setInterviewDate(""); setInterviewTime(""); };
+  const resetDate = () => { setInterviewDateOnly(""); setInterviewTime(""); };
 
   return (
     <div style={{
@@ -403,8 +394,8 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
                   <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                     <input
                       type="date"
-                      value={interviewDate ? interviewDate.split("T")[0] : ""}
-                      onChange={e => handleDateChange(e.target.value)}
+                      value={interviewDateOnly}
+                      onChange={e => setInterviewDateOnly(e.target.value)}
                       style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13 }}
                     />
                     <select
