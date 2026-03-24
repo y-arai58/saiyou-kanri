@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // =====================================================
-//  ★ 変更箇所（3か所）
+//  ★ GAS URL
 // =====================================================
 const GAS_URL = "https://script.google.com/a/macros/third-scope.com/s/AKfycbzolG8RaU4-VDO4T-GHfOgBym-hKu-j6zkrqZHFEPiJJ8EJJXHubCMW3OUQ9HZCpQV0zg/exec";
 
@@ -14,9 +14,6 @@ const FORMS = {
 
 const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷"];
 
-// =====================================================
-//  フロー定義
-// =====================================================
 const FLOWS = {
   chuto_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "中途用フォームを送付する", form: "chuto" },
@@ -45,7 +42,6 @@ const FLOWS = {
     { id: "interview2", label: "2次面接実施済", action: "2次選考の合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
-  // 長期インターン：採用サイト経由（エンジニア・デザイナー）
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（エンジニア）を送付する", form: "interneng" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -53,7 +49,6 @@ const FLOWS = {
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
-  // 長期インターン：採用サイト経由（広報・マーケター）
   intern_site_mar: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（広報・マーケター）を送付する", form: "internmar" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -61,7 +56,6 @@ const FLOWS = {
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用完了", action: null },
   ],
-  // 長期インターン：ゼロワン経由（エンジニア）※デザイナー不可
   intern_zero_eng: [
     { id: "form_sent", label: "フォーム送付済", action: "長期インターン用フォーム（エンジニア）を送付する（ゼロワン経由）", form: "interneng" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -69,7 +63,6 @@ const FLOWS = {
     { id: "interview", label: "面接実施済", action: "合否を判断する（落選はゼロワンから連絡）" },
     { id: "done", label: "完了", action: null },
   ],
-  // 長期インターン：ゼロワン経由（広報・マーケター）
   intern_zero_mar: [
     { id: "form_sent", label: "フォーム送付済", action: "長期インターン用フォーム（広報・マーケター）を送付する（ゼロワン経由）", form: "internmar" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -101,7 +94,6 @@ const FLOW_COLORS = {
   intern_zero_mar: "#d4830a",
 };
 
-// 追加モーダル用：グループ化した選択肢
 const FLOW_OPTIONS = [
   { group: "中途", flows: ["chuto_kaisetsu", "chuto_casual"] },
   { group: "新卒", flows: ["shinsotsu_kaisetsu", "shinsotsu_honsenkou"] },
@@ -109,15 +101,21 @@ const FLOW_OPTIONS = [
   { group: "長期インターン｜ゼロワン", flows: ["intern_zero_eng", "intern_zero_mar"] },
 ];
 
+
 // =====================================================
-//  API
+//  API（全リクエストGET・CORS回避）
 // =====================================================
 async function apiGet(action) {
   const res = await fetch(`${GAS_URL}?action=${action}`);
   return res.json();
 }
+
 async function apiPost(body) {
-  const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(body) });
+  const params = { ...body };
+  if (params.rejected !== undefined) params.rejected = String(params.rejected);
+  if (params.stepIdx !== undefined) params.stepIdx = String(params.stepIdx);
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${GAS_URL}?${qs}`);
   return res.json();
 }
 
@@ -200,9 +198,6 @@ function NoteEditor({ note, onSave }) {
   );
 }
 
-// =====================================================
-//  応募者カード
-// =====================================================
 function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, onToggle, loading }) {
   const steps = FLOWS[app.flow] ?? [];
   const step = steps[app.stepIdx];
@@ -298,9 +293,6 @@ function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, on
   );
 }
 
-// =====================================================
-//  追加モーダル（グループ付きselect）
-// =====================================================
 function AddModal({ onClose, onAdd, saving }) {
   const [form, setForm] = useState({ name: "", flow: "shinsotsu_honsenkou", member: MEMBERS[0], source: "採用サイト", note: "" });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -318,9 +310,7 @@ function AddModal({ onClose, onAdd, saving }) {
           <select value={form.flow} onChange={e => set("flow", e.target.value)} style={s}>
             {FLOW_OPTIONS.map(({ group, flows }) => (
               <optgroup key={group} label={group}>
-                {flows.map(k => (
-                  <option key={k} value={k}>{FLOW_LABELS[k]}</option>
-                ))}
+                {flows.map(k => <option key={k} value={k}>{FLOW_LABELS[k]}</option>)}
               </optgroup>
             ))}
           </select>
@@ -357,9 +347,6 @@ function AddModal({ onClose, onAdd, saving }) {
   );
 }
 
-// =====================================================
-//  メインアプリ
-// =====================================================
 export default function App() {
   const [applicants, setApplicants] = useState([]);
   const [fetchState, setFetchState] = useState("idle");
@@ -400,8 +387,8 @@ export default function App() {
     setLoadingId(null);
   };
 
-  const editNote = async (id, note) => { await apiPost({ action: "update", id, note }); setApplicants(prev => prev.map(a => a.id == id ? { ...a, note } : a)); };
-  const editMember = async (id, member) => { await apiPost({ action: "update", id, member }); setApplicants(prev => prev.map(a => a.id == id ? { ...a, member } : a)); };
+  const editNote = async (id, note) => { const res = await apiPost({ action: "update", id, note }); if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, note } : a)); };
+  const editMember = async (id, member) => { const res = await apiPost({ action: "update", id, member }); if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, member } : a)); };
 
   const addApp = async (form) => {
     setSaving(true);
@@ -424,7 +411,7 @@ export default function App() {
         <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>採用管理</div>
         <div style={{ flex: 1 }} />
         {fetchState === "loading" && <span style={{ fontSize: 12, color: "#aaa" }}>読込中…</span>}
-        {fetchState === "error" && <span style={{ fontSize: 12, color: "#f87171" }}>⚠ スプシ接続エラー — GAS URLを確認してください</span>}
+        {fetchState === "error" && <span style={{ fontSize: 12, color: "#f87171" }}>⚠ スプシ接続エラー</span>}
         <span style={{ fontSize: 13, color: "#aaa" }}>対応中 {active.length}名</span>
         <button onClick={load} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #444", background: "transparent", color: "#ccc", fontSize: 12, cursor: "pointer" }}>更新</button>
         <button onClick={() => setShowAdd(true)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: "#fff", color: "#1a1a1a", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ 追加</button>
