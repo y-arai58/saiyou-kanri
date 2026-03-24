@@ -45,7 +45,7 @@ const FLOWS = {
     { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付する", form: "shinsotsu" },
     { id: "entry_done", label: "フォーム入力待ち", action: "入力されたらchに通知が来るので確認し、ステータスを更新", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "書類通過・日程調整中", action: "通過メール＋1次面接の日程調整を同メールで送付する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
+    { id: "shorui_pass", label: "書類通過・日程調整中", action: "通過連絡＋1次面接の日程調整をメールで送付する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
     { id: "interview1", label: "1次面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview1_judge", label: "1次面接実施済み", action: "1次選考の合否を判断する" },
     { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
