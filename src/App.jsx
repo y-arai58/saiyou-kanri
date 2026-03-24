@@ -12,6 +12,10 @@ const FORMS = {
   internmar: { label: "長期インターン用フォーム（広報・マーケター）", url: "https://docs.google.com/forms/d/e/1FAIpQLSdY7jLUrvZkDy89Zb9tPE0zy1JnKzF8hMf00I4wtdmL333igQ/viewform" },
 };
 
+const CH = {
+  form_entry: { label: "採用フォーム入力通知", url: "https://third-scope.slack.com/archives/C0AJWFB9NDD" },
+};
+
 const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷"];
 
 // =====================================================
