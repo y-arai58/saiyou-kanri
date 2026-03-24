@@ -117,7 +117,11 @@ async function apiGet(action) {
   return res.json();
 }
 async function apiPost(body) {
-  const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(body) });
+  const params = { ...body };
+  if (params.rejected !== undefined) params.rejected = String(params.rejected);
+  if (params.stepIdx !== undefined) params.stepIdx = String(params.stepIdx);
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${GAS_URL}?${qs}`);
   return res.json();
 }
 
