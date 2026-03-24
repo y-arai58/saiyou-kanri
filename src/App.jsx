@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-// =====================================================
-//  ★ 変更箇所（3か所）
-// =====================================================
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzf-T6-DqvsWFvFLqu2he6-EEuAIA8H5pQX-pMLzt5MISkICd2_nQRomYMGuSGcbNGcmQ/exec";
 
 const FORMS = {
@@ -22,24 +19,28 @@ const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷"];
 //  フロー定義
 // =====================================================
 const FLOWS = {
+  //中途: 会社説明
   chuto_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "中途用フォームを送付＋日程調整を行う", form: "chuto" },
     { id: "schedule", label: "フォーム入力待ち&日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程", ch: "form_entry" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
+  //中途: カジュアル面談
   chuto_casual: [
     { id: "entry", label: "エントリー受付", action: "中途用フォームを送付＋カジュアル面談の日程を調整する", form: "chuto" },
     { id: "schedule", label: "フォーム入力待ち&日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程", ch: "form_entry" },
     { id: "casual", label: "面談(日程確定済み)", action: "面接希望の場合は再エントリーを促す" },
     { id: "done", label: "面談完了", action: null },
   ],
+  //新卒: 会社説明
   shinsotsu_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付＋会社説明の日程を調整する", form: "shinsotsu" },
     { id: "schedule", label: "フォーム入力待ち＆日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程", ch: "form_entry" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
+  //新卒: 本選考
   shinsotsu_honsenkou: [
     { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付する", form: "shinsotsu" },
     { id: "entry_done", label: "フォーム入力待ち", action: "入力されたらchに通知が来るので確認し、ステータスを更新", ch: "form_entry" },
