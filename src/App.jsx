@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzf-T6-DqvsWFvFLqu2he6-EEuAIA8H5pQX-pMLzt5MISkICd2_nQRomYMGuSGcbNGcmQ/exec";
+const GAS_URL = import.meta.env.VITE_GAS_URL;
 
 const FORMS = {
   chuto: { label: "中途用フォーム", url: "https://forms.gle/2hCrxjyyHc1D3n9h9" },
@@ -188,6 +188,12 @@ function getFlowDateFields(flow) {
   }, []);
 }
 
+const TIME_SLOTS = Array.from({ length: 17 }, (_, i) => {
+  const h = String(11 + Math.floor(i / 2)).padStart(2, "0");
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${h}:${m}`;
+}); // 11:00〜19:00
+
 // =====================================================
 //  ユーティリティ
 // =====================================================
@@ -298,12 +304,6 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
   const [interviewTime, setInterviewTime] = useState("");
   const interviewDate = interviewDateOnly && interviewTime ? `${interviewDateOnly}T${interviewTime}` : "";
 
-  const TIME_SLOTS = Array.from({ length: 17 }, (_, i) => {
-    const h = String(11 + Math.floor(i / 2)).padStart(2, "0");
-    const m = i % 2 === 0 ? "00" : "30";
-    return `${h}:${m}`;
-  }); // 11:00〜19:00
-
   const resetDate = () => { setInterviewDateOnly(""); setInterviewTime(""); };
 
   return (
@@ -319,7 +319,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
           background: c + "22", color: c,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontWeight: 800, fontSize: 15,
-        }}>{app.name[0]}</div>
+        }}>{app.name?.[0] ?? ""}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a" }}>{app.name}</span>
@@ -473,9 +473,14 @@ function AddModal({ onClose, onAdd, saving }) {
     if (!name) return;
     onAdd({ name, flow: resolveFlow(baseFlow, internRoute, siteSubType), source: resolveSource(baseFlow, internRoute), member, note });
   };
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div style={{ background: "#fff", borderRadius: 14, padding: 28, width: 440, maxWidth: "92vw", boxShadow: "0 8px 40px #0003" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 28, width: 440, maxWidth: "92vw", boxShadow: "0 8px 40px #0003" }}>
         <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を追加</div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
@@ -551,24 +556,27 @@ function AddModal({ onClose, onAdd, saving }) {
 // =====================================================
 function CalendarView({ applicants }) {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const [yearMonth, setYearMonth] = useState({ year: today.getFullYear(), month: today.getMonth() });
+  const { year, month } = yearMonth;
 
-  const events = [];
-  for (const app of applicants) {
-    const dateFields = getFlowDateFields(app.flow);
-    for (const { field, label } of dateFields) {
-      if (app[field]) {
-        const d = new Date(app[field]);
-        if (!isNaN(d.getTime())) {
-          events.push({ date: d, name: app.name, label, flow: app.flow, color: FLOW_COLORS[app.flow] });
+  const events = useMemo(() => {
+    const result = [];
+    for (const app of applicants) {
+      const dateFields = getFlowDateFields(app.flow);
+      for (const { field, label } of dateFields) {
+        if (app[field]) {
+          const d = new Date(app[field]);
+          if (!isNaN(d.getTime())) {
+            result.push({ date: d, name: app.name, label, flow: app.flow, color: FLOW_COLORS[app.flow] });
+          }
         }
       }
     }
-  }
+    return result;
+  }, [applicants]);
 
-  const prevMonth = () => { if (month === 0) { setYear(y => y - 1); setMonth(11); } else setMonth(m => m - 1); };
-  const nextMonth = () => { if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1); };
+  const prevMonth = () => setYearMonth(prev => prev.month === 0 ? { year: prev.year - 1, month: 11 } : { year: prev.year, month: prev.month - 1 });
+  const nextMonth = () => setYearMonth(prev => prev.month === 11 ? { year: prev.year + 1, month: 0 } : { year: prev.year, month: prev.month + 1 });
 
   const firstDow = new Date(year, month, 1).getDay();
   const totalDays = new Date(year, month + 1, 0).getDate();
@@ -648,44 +656,68 @@ export default function App() {
   useEffect(() => { load(); }, [load]);
 
   const advance = async (id, dateValue, dateField) => {
-    const app = applicants.find(a => a.id == id);
+    const app = applicants.find(a => a.id === id);
     if (!app) return;
     const newIdx = app.stepIdx + 1;
     setLoadingId(id);
-    const body = { action: "update", id, stepIdx: newIdx };
-    if (dateValue && dateField) body[dateField] = dateValue;
-    const res = await apiPost(body);
-    if (res.ok) setApplicants(prev => prev.map(a =>
-      a.id == id ? { ...a, stepIdx: newIdx, ...(dateValue && dateField ? { [dateField]: dateValue } : {}) } : a
-    ));
+    try {
+      const body = { action: "update", id, stepIdx: newIdx };
+      if (dateValue && dateField) body[dateField] = dateValue;
+      const res = await apiPost(body);
+      if (res.ok) setApplicants(prev => prev.map(a =>
+        a.id === id ? { ...a, stepIdx: newIdx, ...(dateValue && dateField ? { [dateField]: dateValue } : {}) } : a
+      ));
+      else alert("更新に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
     setLoadingId(null);
   };
 
   const stepBack = async (id) => {
-    const app = applicants.find(a => a.id == id);
+    const app = applicants.find(a => a.id === id);
     if (!app || app.stepIdx <= 0) return;
     const newIdx = app.stepIdx - 1;
     setLoadingId(id);
-    const res = await apiPost({ action: "update", id, stepIdx: newIdx });
-    if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, stepIdx: newIdx } : a));
+    try {
+      const res = await apiPost({ action: "update", id, stepIdx: newIdx });
+      if (res.ok) setApplicants(prev => prev.map(a => a.id === id ? { ...a, stepIdx: newIdx } : a));
+      else alert("更新に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
     setLoadingId(null);
   };
 
   const reject = async (id) => {
     if (!window.confirm("不合格・終了にしますか？")) return;
     setLoadingId(id);
-    const res = await apiPost({ action: "update", id, rejected: true });
-    if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, rejected: true } : a));
+    try {
+      const res = await apiPost({ action: "update", id, rejected: true });
+      if (res.ok) setApplicants(prev => prev.map(a => a.id === id ? { ...a, rejected: true } : a));
+      else alert("更新に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
     setLoadingId(null);
   };
 
-  const editNote = async (id, note) => { await apiPost({ action: "update", id, note }); setApplicants(prev => prev.map(a => a.id == id ? { ...a, note } : a)); };
-  const editMember = async (id, member) => { await apiPost({ action: "update", id, member }); setApplicants(prev => prev.map(a => a.id == id ? { ...a, member } : a)); };
+  const editNote = async (id, note) => {
+    try {
+      const res = await apiPost({ action: "update", id, note });
+      if (res.ok) setApplicants(prev => prev.map(a => a.id === id ? { ...a, note } : a));
+      else alert("メモの保存に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
+  };
+  const editMember = async (id, member) => {
+    try {
+      const res = await apiPost({ action: "update", id, member });
+      if (res.ok) setApplicants(prev => prev.map(a => a.id === id ? { ...a, member } : a));
+      else alert("担当者の変更に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
+  };
 
   const addApp = async (form) => {
     setSaving(true);
-    const res = await apiPost({ action: "add", ...form });
-    if (res.ok) { setApplicants(prev => [...prev, res.data]); setShowAdd(false); }
+    try {
+      const res = await apiPost({ action: "add", ...form });
+      if (res.ok) { setApplicants(prev => [...prev, res.data]); setShowAdd(false); }
+      else alert("追加に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
     setSaving(false);
   };
 
