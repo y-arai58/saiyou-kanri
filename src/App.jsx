@@ -13,7 +13,7 @@ const CH = {
   form_entry: { label: "採用フォーム入力通知", url: "https://third-scope.slack.com/archives/C0AJWFB9NDD" },
 };
 
-const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷"];
+const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷", "伊藤"];
 
 // =====================================================
 //  フロー定義
@@ -586,8 +586,8 @@ function CalendarView({ applicants }) {
     e.date.getFullYear() === year && e.date.getMonth() === month && e.date.getDate() === day
   );
 
-  const MONTH_NAMES = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
-  const DOW_NAMES = ["日","月","火","水","木","金","土"];
+  const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+  const DOW_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px 0" }}>
@@ -614,13 +614,18 @@ function CalendarView({ applicants }) {
                 width: 22, height: 22, borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4,
               }}>{day}</div>
-              {dayEvents.map((ev, j) => (
-                <div key={j} title={`${ev.name}（${ev.label}）`} style={{
-                  fontSize: 10, fontWeight: 700, color: "#fff",
-                  background: ev.color, borderRadius: 3, padding: "2px 5px",
-                  marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>{ev.name}</div>
-              ))}
+              {dayEvents.map((ev, j) => {
+                const hh = ev.date.getHours();
+                const mm = ev.date.getMinutes();
+                const timeStr = (hh !== 0 || mm !== 0) ? `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")} ` : "";
+                return (
+                  <div key={j} title={`${timeStr}${ev.name}（${ev.label}）`} style={{
+                    fontSize: 10, fontWeight: 700, color: "#fff",
+                    background: ev.color, borderRadius: 3, padding: "2px 5px",
+                    marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>{timeStr}{ev.name}</div>
+                );
+              })}
             </div>
           );
         })}
