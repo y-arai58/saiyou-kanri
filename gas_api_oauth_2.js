@@ -1,26 +1,16 @@
 // ===================================================
-//  採用管理アプリ — Google Apps Script API (OAuth版)
-//  ★ デプロイ設定：アクセスできるユーザー →
-//    「自分のドメインの全員（yourcompany.com）」
+//  採用管理アプリ — Google Apps Script API
+//  ★ デプロイ設定：
+//    - 次のユーザーとして実行：自分
+//    - アクセスできるユーザー：全員
 // ===================================================
 
 const SHEET_NAME = "applicants";
-const ALLOWED_DOMAIN = "third-scope.com"; // ★ 社内ドメインに変更
 
 const HEADERS = [
   "id", "name", "flow", "stepIdx", "member",
   "source", "note", "rejected", "created"
 ];
-
-// ----- ドメイン検証 -----
-function checkDomain() {
-  const email = Session.getActiveUser().getEmail();
-  const domain = email.split("@")[1];
-  if (domain !== ALLOWED_DOMAIN) {
-    throw new Error(`アクセス拒否: ${email} はこのアプリを使用できません`);
-  }
-  return email;
-}
 
 function getSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -53,40 +43,26 @@ function rowToArray(obj) {
   });
 }
 
-// ----- GET -----
+// ----- GET（全操作をクエリパラメータで処理）-----
 function doGet(e) {
   try {
-    checkDomain(); // 社内アカウント検証
-    const action = e.parameter.action;
-    if (action === "list") {
-      return jsonResponse({ ok: true, data: getAllRows(getSheet()) });
-    }
-    if (action === "whoami") {
-      return jsonResponse({ ok: true, email: Session.getActiveUser().getEmail() });
-    }
-    return jsonResponse({ ok: false, error: "unknown action" });
-  } catch (err) {
-    return jsonResponse({ ok: false, error: err.message });
-  }
-}
-
-// ----- POST -----
-function doPost(e) {
-  try {
-    checkDomain(); // 社内アカウント検証
-    const body = JSON.parse(e.postData.contents);
-    const action = body.action;
+    const p = e.parameter;
+    const action = p.action;
     const sheet = getSheet();
+
+    if (action === "list") {
+      return jsonResponse({ ok: true, data: getAllRows(sheet) });
+    }
 
     if (action === "add") {
       const newRow = {
         id: Date.now().toString(),
-        name: body.name,
-        flow: body.flow,
+        name: p.name,
+        flow: p.flow,
         stepIdx: 0,
-        member: body.member,
-        source: body.source || "採用サイト",
-        note: body.note || "",
+        member: p.member,
+        source: p.source || "採用サイト",
+        note: p.note || "",
         rejected: false,
         created: new Date().toISOString().slice(0, 10),
       };
@@ -97,15 +73,15 @@ function doPost(e) {
     if (action === "update") {
       const rows = sheet.getDataRange().getValues();
       for (let i = 1; i < rows.length; i++) {
-        if (String(rows[i][0]) === String(body.id)) {
+        if (String(rows[i][0]) === String(p.id)) {
           const obj = {};
           HEADERS.forEach((h, j) => { obj[h] = rows[i][j]; });
           obj.stepIdx = Number(obj.stepIdx);
           obj.rejected = obj.rejected === true || obj.rejected === "TRUE";
-          if (body.stepIdx !== undefined) obj.stepIdx = Number(body.stepIdx);
-          if (body.rejected !== undefined) obj.rejected = body.rejected;
-          if (body.note !== undefined) obj.note = body.note;
-          if (body.member !== undefined) obj.member = body.member;
+          if (p.stepIdx !== undefined) obj.stepIdx = Number(p.stepIdx);
+          if (p.rejected !== undefined) obj.rejected = p.rejected === "true";
+          if (p.note !== undefined) obj.note = p.note;
+          if (p.member !== undefined) obj.member = p.member;
           sheet.getRange(i + 1, 1, 1, HEADERS.length).setValues([rowToArray(obj)]);
           return jsonResponse({ ok: true, data: obj });
         }
@@ -116,7 +92,7 @@ function doPost(e) {
     if (action === "delete") {
       const rows = sheet.getDataRange().getValues();
       for (let i = 1; i < rows.length; i++) {
-        if (String(rows[i][0]) === String(body.id)) {
+        if (String(rows[i][0]) === String(p.id)) {
           sheet.deleteRow(i + 1);
           return jsonResponse({ ok: true });
         }
