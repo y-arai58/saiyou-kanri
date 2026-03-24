@@ -112,10 +112,15 @@ const FLOW_OPTIONS = [
 // =====================================================
 //  API
 // =====================================================
+// データ取得（list）
 async function apiGet(action) {
   const res = await fetch(`${GAS_URL}?action=${action}`);
   return res.json();
 }
+
+// データ書き込み（add / update）
+// ※ GASはPOSTのCORSプリフライトに対応していないため、GETクエリパラメータで送信する
+// ※ URLSearchParams は文字列のみ受け付けるので boolean/number は事前に変換
 async function apiPost(body) {
   const params = { ...body };
   if (params.rejected !== undefined) params.rejected = String(params.rejected);
