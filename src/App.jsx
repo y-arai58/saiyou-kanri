@@ -20,19 +20,19 @@ const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷"];
 const FLOWS = {
   chuto_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "中途用フォームを送付＋日程調整を行う", form: "chuto" },
-    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡" },
+    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
   chuto_casual: [
     { id: "entry", label: "エントリー受付", action: "中途用フォームを送付＋カジュアル面談の日程を調整する", form: "chuto" },
-    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡" },
+    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "casual", label: "面談(日程確定済み)", action: "面接希望の場合は再エントリーを促す" },
     { id: "done", label: "面談完了", action: null },
   ],
   shinsotsu_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付＋会社説明の日程を調整する", form: "shinsotsu" },
-    { id: "schedule", label: "フォーム入力待ち＆日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新" },
+    { id: "schedule", label: "フォーム入力待ち＆日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
@@ -40,9 +40,9 @@ const FLOWS = {
     { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付する", form: "shinsotsu" },
     { id: "", label: "フォーム入力待ち", action: "入力されたらchに通知が来るので確認し、ステータスを更新", form: "shinsotsu" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "書類通過・日程調整中", action: "通過メール＋1次面接の日程調整を同メールで送付する" },
+    { id: "shorui_pass", label: "書類通過・日程調整中", action: "通過メール＋1次面接の日程調整を同メールで送付する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
     { id: "interview1", label: "1次面接実施済", action: "1次選考の合否を判断する" },
-    { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有" },
+    { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
     { id: "interview2", label: "2次面接実施済", action: "2次選考の合否を判断する" },
     { id: "done", label: "採用決定", action: null },
   ],
@@ -50,7 +50,7 @@ const FLOWS = {
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（エンジニア）を送付する", form: "interneng" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true },
+    { id: "schedule", label: "面接日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用決定", action: null },
@@ -59,7 +59,7 @@ const FLOWS = {
   intern_site_mar: [
     { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（広報・マーケター）を送付する", form: "internmar" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true },
+    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用決定", action: null },
@@ -67,7 +67,7 @@ const FLOWS = {
   // 長期インターン：ゼロワン経由（エンジニア）
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡", dateInput: true },
+    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用決定", action: null },
@@ -75,7 +75,7 @@ const FLOWS = {
   // 長期インターン：ゼロワン経由（広報・マーケター）
   intern_zero_mar: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡", dateInput: true },
+    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview", label: "面接実施済", action: "合否を判断する" },
     { id: "done", label: "採用決定", action: null },
@@ -83,14 +83,14 @@ const FLOWS = {
   // 長期インターン：採用サイト経由・会社説明（エンジニア）
   intern_site_kaisetsu_eng: [
     { id: "entry", label: "エントリー受付", action: "会社説明の日程を調整する" },
-    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡" },
+    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
   // 長期インターン：採用サイト経由・会社説明（広報・マーケター）
   intern_site_kaisetsu_mar: [
     { id: "entry", label: "エントリー受付", action: "会社説明の日程を調整する" },
-    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡" },
+    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
@@ -170,6 +170,15 @@ async function apiPost(body) {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`${GAS_URL}?${qs}`);
   return res.json();
+}
+
+// フローの全ステップから dateField を収集（重複除去）
+function getFlowDateFields(flow) {
+  const seen = new Set();
+  return (FLOWS[flow] ?? []).filter(s => s.dateInput && s.dateField).reduce((acc, s) => {
+    if (!seen.has(s.dateField)) { seen.add(s.dateField); acc.push({ field: s.dateField, label: s.dateLabel }); }
+    return acc;
+  }, []);
 }
 
 // =====================================================
@@ -336,7 +345,9 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10, display: "flex", gap: 16, flexWrap: "wrap" }}>
             <span>応募経路: {app.source}</span>
             <span>応募日: {formatDate(app.created)}</span>
-            {app.interviewDate && <span style={{ color: "#6d28d9", fontWeight: 700 }}>面接日時: {formatDateTime(app.interviewDate)}</span>}
+            {getFlowDateFields(app.flow).map(({ field, label }) => app[field] && (
+              <span key={field} style={{ color: "#6d28d9", fontWeight: 700 }}>{label}: {formatDateTime(app[field])}</span>
+            ))}
           </div>
 
           <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
@@ -353,7 +364,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
             <div style={{ marginTop: 12 }}>
               {next && step?.dateInput && pendingDate ? (
                 <div style={{ background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>面接日時を入力してください</div>
+                  <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>{step.dateLabel}を入力してください</div>
                   <input
                     type="datetime-local"
                     value={interviewDate}
@@ -362,7 +373,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
                   />
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      onClick={() => { onAdvance(app.id, interviewDate); setPendingDate(false); setInterviewDate(""); }}
+                      onClick={() => { onAdvance(app.id, interviewDate, step.dateField); setPendingDate(false); setInterviewDate(""); }}
                       disabled={loading || !interviewDate}
                       style={{
                         padding: "8px 18px", borderRadius: 6, border: "none",
@@ -524,15 +535,17 @@ export default function App() {
 
   useEffect(() => { load(); }, [load]);
 
-  const advance = async (id, interviewDate) => {
+  const advance = async (id, dateValue, dateField) => {
     const app = applicants.find(a => a.id == id);
     if (!app) return;
     const newIdx = app.stepIdx + 1;
     setLoadingId(id);
     const body = { action: "update", id, stepIdx: newIdx };
-    if (interviewDate) body.interviewDate = interviewDate;
+    if (dateValue && dateField) body[dateField] = dateValue;
     const res = await apiPost(body);
-    if (res.ok) setApplicants(prev => prev.map(a => a.id == id ? { ...a, stepIdx: newIdx, ...(interviewDate ? { interviewDate } : {}) } : a));
+    if (res.ok) setApplicants(prev => prev.map(a =>
+      a.id == id ? { ...a, stepIdx: newIdx, ...(dateValue && dateField ? { [dateField]: dateValue } : {}) } : a
+    ));
     setLoadingId(null);
   };
 
