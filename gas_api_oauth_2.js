@@ -9,7 +9,8 @@ const SHEET_NAME = "applicants";
 
 const HEADERS = [
   "id", "name", "flow", "stepIdx", "member",
-  "source", "note", "rejected", "created", "interviewDate"
+  "source", "note", "rejected", "created",
+  "interviewDate", "scheduledDate", "interview1Date", "interview2Date"
 ];
 
 function getSheet() {
@@ -83,6 +84,9 @@ function doGet(e) {
           if (p.note !== undefined) obj.note = p.note;
           if (p.member !== undefined) obj.member = p.member;
           if (p.interviewDate !== undefined) obj.interviewDate = p.interviewDate;
+          if (p.scheduledDate !== undefined) obj.scheduledDate = p.scheduledDate;
+          if (p.interview1Date !== undefined) obj.interview1Date = p.interview1Date;
+          if (p.interview2Date !== undefined) obj.interview2Date = p.interview2Date;
           sheet.getRange(i + 1, 1, 1, HEADERS.length).setValues([rowToArray(obj)]);
           return jsonResponse({ ok: true, data: obj });
         }
