@@ -99,13 +99,28 @@ const FLOW_COLORS = {
   intern_zero_mar: "#d4830a",
 };
 
-// 追加モーダル用：グループ化した選択肢
+// 追加モーダル用：グループ化した選択肢（応募経路はインターン選択時に別途切り替え）
 const FLOW_OPTIONS = [
   { group: "中途", flows: ["chuto_kaisetsu", "chuto_casual"] },
   { group: "新卒", flows: ["shinsotsu_kaisetsu", "shinsotsu_honsenkou"] },
-  { group: "長期インターン｜採用サイト", flows: ["intern_site_eng", "intern_site_mar"] },
-  { group: "長期インターン｜ゼロワン", flows: ["intern_zero_eng", "intern_zero_mar"] },
+  { group: "長期インターン", flows: ["intern_eng", "intern_mar"] },
 ];
+
+const FLOW_OPTION_LABELS = {
+  ...FLOW_LABELS,
+  intern_eng: "長期インターン｜エンジニア",
+  intern_mar: "長期インターン｜マーケ",
+};
+
+// baseFlow + internRoute → 実際のフローキー・応募経路
+function resolveFlow(baseFlow, internRoute) {
+  if (baseFlow === "intern_eng") return internRoute === "ゼロワン" ? "intern_zero_eng" : "intern_site_eng";
+  if (baseFlow === "intern_mar") return internRoute === "ゼロワン" ? "intern_zero_mar" : "intern_site_mar";
+  return baseFlow;
+}
+function resolveSource(baseFlow, internRoute) {
+  return (baseFlow === "intern_eng" || baseFlow === "intern_mar") ? internRoute : "採用サイト";
+}
 
 // =====================================================
 //  API
@@ -309,53 +324,67 @@ function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, on
 //  追加モーダル（グループ付きselect）
 // =====================================================
 function AddModal({ onClose, onAdd, saving }) {
-  const [form, setForm] = useState({ name: "", flow: "shinsotsu_honsenkou", member: MEMBERS[0], source: "採用サイト", note: "" });
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const [name, setName] = useState("");
+  const [baseFlow, setBaseFlow] = useState("shinsotsu_honsenkou");
+  const [internRoute, setInternRoute] = useState("採用サイト");
+  const [member, setMember] = useState(MEMBERS[0]);
+  const [note, setNote] = useState("");
+  const isIntern = baseFlow === "intern_eng" || baseFlow === "intern_mar";
   const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
+  const handleAdd = () => {
+    if (!name) return;
+    onAdd({ name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member, note });
+  };
   return (
     <div style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#fff", borderRadius: 14, padding: 28, width: 440, maxWidth: "92vw", boxShadow: "0 8px 40px #0003" }}>
         <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を追加</div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
-          <input value={form.name} onChange={e => set("name", e.target.value)} style={s} placeholder="例: 山田 太郎" />
+          <input value={name} onChange={e => setName(e.target.value)} style={s} placeholder="例: 山田 太郎" />
         </div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>フロー</label>
-          <select value={form.flow} onChange={e => set("flow", e.target.value)} style={s}>
+          <select value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
             {FLOW_OPTIONS.map(({ group, flows }) => (
               <optgroup key={group} label={group}>
                 {flows.map(k => (
-                  <option key={k} value={k}>{FLOW_LABELS[k]}</option>
+                  <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>
                 ))}
               </optgroup>
             ))}
           </select>
         </div>
-        <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
-            <select value={form.member} onChange={e => set("member", e.target.value)} style={s}>
-              {MEMBERS.map(m => <option key={m}>{m}</option>)}
-            </select>
+        {isIntern && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>応募経路</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["採用サイト", "ゼロワン"].map(r => (
+                <button key={r} onClick={() => setInternRoute(r)} style={{
+                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  border: internRoute === r ? "2px solid #1a1a1a" : "1px solid #ddd",
+                  background: internRoute === r ? "#1a1a1a" : "#fff",
+                  color: internRoute === r ? "#fff" : "#555",
+                }}>{r}</button>
+              ))}
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>応募経路</label>
-            <select value={form.source} onChange={e => set("source", e.target.value)} style={s}>
-              <option>採用サイト</option>
-              <option>ゼロワン</option>
-            </select>
-          </div>
+        )}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
+          <select value={member} onChange={e => setMember(e.target.value)} style={s}>
+            {MEMBERS.map(m => <option key={m}>{m}</option>)}
+          </select>
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>メモ（任意）</label>
-          <textarea value={form.note} onChange={e => set("note", e.target.value)} rows={2}
+          <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
             style={{ ...s, resize: "none" }} placeholder="初期メモがあれば…" />
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 14 }}>キャンセル</button>
-          <button onClick={() => form.name && onAdd(form)} disabled={!form.name || saving}
-            style={{ padding: "9px 22px", borderRadius: 6, border: "none", background: form.name ? "#1a1a1a" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 14, cursor: form.name ? "pointer" : "default" }}>
+          <button onClick={handleAdd} disabled={!name || saving}
+            style={{ padding: "9px 22px", borderRadius: 6, border: "none", background: name ? "#1a1a1a" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 14, cursor: name ? "pointer" : "default" }}>
             {saving ? "追加中…" : "追加"}
           </button>
         </div>
