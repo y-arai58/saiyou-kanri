@@ -212,6 +212,15 @@ function formatDateTime(dateStr) {
   return d.toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tokyo" });
 }
 
+function getDaysStalled(app) {
+  const ref = app.stepUpdatedAt || app.created;
+  if (!ref) return 0;
+  const d = new Date(ref);
+  if (isNaN(d.getTime())) return 0;
+  const now = new Date();
+  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+}
+
 // =====================================================
 //  小コンポーネント
 // =====================================================
@@ -294,12 +303,14 @@ function NoteEditor({ note, onSave }) {
 // =====================================================
 //  応募者カード
 // =====================================================
-function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, expanded, onToggle, loading }) {
+function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, onEdit, expanded, onToggle, loading }) {
   const steps = FLOWS[app.flow] ?? [];
   const step = steps[app.stepIdx];
   const next = steps[app.stepIdx + 1];
   const isDone = step?.id === "done" || app.rejected;
   const c = FLOW_COLORS[app.flow];
+  const daysStalled = getDaysStalled(app);
+  const isStalled = !isDone && daysStalled >= 5;
   const [pendingDate, setPendingDate] = useState(false);
   const [interviewDateOnly, setInterviewDateOnly] = useState("");
   const [interviewTime, setInterviewTime] = useState("");
@@ -309,9 +320,10 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
 
   return (
     <div style={{
-      background: "#fff", border: `1px solid ${expanded ? c + "70" : "#e8e8e8"}`,
+      background: "#fff", border: `1px solid ${expanded ? c + "70" : isStalled ? "#f59e0b60" : "#e8e8e8"}`,
       borderRadius: 10, marginBottom: 10, overflow: "hidden",
       boxShadow: expanded ? `0 2px 14px ${c}1a` : "0 1px 3px #0000000a",
+      borderLeft: isStalled ? "4px solid #f59e0b" : `1px solid ${expanded ? c + "70" : "#e8e8e8"}`,
       opacity: loading ? 0.6 : 1, transition: "opacity 0.2s, border-color 0.2s",
     }}>
       <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }}>
@@ -327,6 +339,10 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
             <Tag flow={app.flow} />
             {app.rejected && <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>終了</span>}
             {!app.rejected && step?.id === "done" && <span style={{ fontSize: 11, color: "#43a047", fontWeight: 700 }}>✓ 採用完了</span>}
+            {isStalled && <span style={{
+              fontSize: 10, fontWeight: 700, color: "#92400e", background: "#fef3c7",
+              border: "1px solid #fcd34d", borderRadius: 4, padding: "1px 7px", whiteSpace: "nowrap",
+            }}>⚠ {daysStalled}日滞留</span>}
           </div>
           <StepBar flow={app.flow} stepIdx={app.stepIdx} />
         </div>
@@ -338,6 +354,18 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
 
       {expanded && (
         <div style={{ borderTop: "1px solid #f0f0f0", padding: "14px 16px", background: "#fafafa" }}>
+          {isStalled && (
+            <div style={{
+              background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8,
+              padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <span style={{ fontSize: 18 }}>⚠️</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>{daysStalled}日間このステップに滞留しています</div>
+                <div style={{ fontSize: 11, color: "#b45309", marginTop: 2 }}>最終更新: {formatDateTime(app.stepUpdatedAt || app.created)}</div>
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 180, background: "#fff", border: "1px solid #eee", borderRadius: 8, padding: "10px 14px" }}>
               <div style={{ fontSize: 11, color: "#999", fontWeight: 700, marginBottom: 4 }}>現在のステータス</div>
@@ -377,12 +405,17 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
             ))}
           </div>
 
-          <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "#777", fontWeight: 600 }}>担当者:</span>
             <select value={app.member} onChange={e => onEditMember(app.id, e.target.value)}
               style={{ fontSize: 13, padding: "4px 8px", borderRadius: 6, border: "1px solid #ddd" }}>
               {MEMBERS.map(m => <option key={m}>{m}</option>)}
             </select>
+            <div style={{ flex: 1 }} />
+            <button onClick={() => onEdit(app)} style={{
+              fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "1px solid #ddd",
+              background: "#fff", color: "#666", cursor: "pointer", fontWeight: 600,
+            }}>✏ 編集</button>
           </div>
 
           <NoteEditor note={app.note} onSave={note => onEditNote(app.id, note)} />
@@ -553,6 +586,106 @@ function AddModal({ onClose, onAdd, saving }) {
 }
 
 // =====================================================
+//  編集モーダル
+// =====================================================
+function EditModal({ app, onClose, onSave, saving }) {
+  const [name, setName] = useState(app.name);
+  // baseFlow を逆算する
+  const inferBase = (flow) => {
+    if (flow.startsWith("intern") && flow.includes("eng")) return "intern_eng";
+    if (flow.startsWith("intern") && flow.includes("mar")) return "intern_mar";
+    return flow;
+  };
+  const inferRoute = (flow) => flow.includes("zero") ? "ゼロワン" : "採用サイト";
+  const inferSubType = (flow) => flow.includes("kaisetsu") ? "会社説明" : "インターン応募";
+
+  const [baseFlow, setBaseFlow] = useState(inferBase(app.flow));
+  const [internRoute, setInternRoute] = useState(inferRoute(app.flow));
+  const [siteSubType, setSiteSubType] = useState(inferSubType(app.flow));
+  const [member, setMember] = useState(app.member);
+  const isIntern = baseFlow === "intern_eng" || baseFlow === "intern_mar";
+  const isSite = isIntern && internRoute === "採用サイト";
+  const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
+  const handleSave = () => {
+    if (!name) return;
+    const newFlow = resolveFlow(baseFlow, internRoute, siteSubType);
+    const newSource = resolveSource(baseFlow, internRoute);
+    onSave({ id: app.id, name, flow: newFlow, source: newSource, member });
+  };
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 28, width: 440, maxWidth: "92vw", boxShadow: "0 8px 40px #0003" }}>
+        <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を編集</div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
+          <input value={name} onChange={e => setName(e.target.value)} style={s} />
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>フロー</label>
+          <select value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
+            {FLOW_OPTIONS.map(({ group, flows }) => (
+              <optgroup key={group} label={group}>
+                {flows.map(k => (
+                  <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        {isIntern && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>応募経路</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["採用サイト", "ゼロワン"].map(r => (
+                <button key={r} onClick={() => setInternRoute(r)} style={{
+                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  border: internRoute === r ? "2px solid #1a1a1a" : "1px solid #ddd",
+                  background: internRoute === r ? "#1a1a1a" : "#fff",
+                  color: internRoute === r ? "#fff" : "#555",
+                }}>{r}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        {isSite && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>フロー種別</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {["インターン応募", "会社説明"].map(t => (
+                <button key={t} onClick={() => setSiteSubType(t)} style={{
+                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  border: siteSubType === t ? "2px solid #0d9488" : "1px solid #ddd",
+                  background: siteSubType === t ? "#0d9488" : "#fff",
+                  color: siteSubType === t ? "#fff" : "#555",
+                }}>{t}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
+          <select value={member} onChange={e => setMember(e.target.value)} style={s}>
+            {MEMBERS.map(m => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 14 }}>キャンセル</button>
+          <button onClick={handleSave} disabled={!name || saving}
+            style={{ padding: "9px 22px", borderRadius: 6, border: "none", background: name ? "#1a1a1a" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 14, cursor: name ? "pointer" : "default" }}>
+            {saving ? "保存中…" : "保存"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
 //  カレンダービュー
 // =====================================================
 function CalendarView({ applicants }) {
@@ -711,6 +844,7 @@ export default function App() {
   const [loadingId, setLoadingId] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -796,6 +930,18 @@ export default function App() {
     setSaving(false);
   };
 
+  const editApp = async (form) => {
+    setSaving(true);
+    try {
+      const res = await apiPost({ action: "update", id: form.id, name: form.name, flow: form.flow, source: form.source, member: form.member });
+      if (res.ok) {
+        setApplicants(prev => prev.map(a => a.id === form.id ? { ...a, name: form.name, flow: form.flow, source: form.source, member: form.member } : a));
+        setShowEdit(null);
+      } else alert("更新に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
+    setSaving(false);
+  };
+
   const filtered = applicants.filter(a => {
     if (filter !== "all" && a.flow !== filter) return false;
     if (search && !a.name.includes(search)) return false;
@@ -854,6 +1000,7 @@ export default function App() {
         {active.map(app => (
           <Card key={app.id} app={app}
             onAdvance={advance} onStepBack={stepBack} onReject={reject} onEditNote={editNote} onEditMember={editMember}
+            onEdit={(a) => setShowEdit(a)}
             expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
             loading={loadingId === app.id} />
         ))}
@@ -867,6 +1014,7 @@ export default function App() {
             {showDone && done.map(app => (
               <Card key={app.id} app={app}
                 onAdvance={advance} onStepBack={stepBack} onReject={reject} onEditNote={editNote} onEditMember={editMember}
+                onEdit={(a) => setShowEdit(a)}
                 expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
                 loading={loadingId === app.id} />
             ))}
@@ -875,6 +1023,7 @@ export default function App() {
       </div>}
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onAdd={addApp} saving={saving} />}
+      {showEdit && <EditModal app={showEdit} onClose={() => setShowEdit(null)} onSave={editApp} saving={saving} />}
     </div>
   );
 }
