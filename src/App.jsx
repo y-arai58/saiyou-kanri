@@ -303,7 +303,7 @@ function NoteEditor({ note, onSave }) {
 // =====================================================
 //  応募者カード
 // =====================================================
-function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, onEdit, expanded, onToggle, loading }) {
+function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEditNote, onEditMember, onEdit, expanded, onToggle, loading }) {
   const steps = FLOWS[app.flow] ?? [];
   const step = steps[app.stepIdx];
   const next = steps[app.stepIdx + 1];
@@ -407,32 +407,29 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
 
           <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "#777", fontWeight: 600 }}>担当者:</span>
-            <select value={app.member} onChange={e => onEditMember(app.id, e.target.value)}
+            <select data-1p-ignore value={app.member} onChange={e => onEditMember(app.id, e.target.value)}
               style={{ fontSize: 13, padding: "4px 8px", borderRadius: 6, border: "1px solid #ddd" }}>
               {MEMBERS.map(m => <option key={m}>{m}</option>)}
             </select>
-            <div style={{ flex: 1 }} />
-            <button onClick={() => onEdit(app)} style={{
-              fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "1px solid #ddd",
-              background: "#fff", color: "#666", cursor: "pointer", fontWeight: 600,
-            }}>✏ 編集</button>
           </div>
 
           <NoteEditor note={app.note} onSave={note => onEditNote(app.id, note)} />
 
-          {!isDone && (
+          {!isDone ? (
             <div style={{ marginTop: 12 }}>
               {next && step?.dateInput && pendingDate ? (
                 <div style={{ background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
                   <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>{step.dateLabel}を入力してください</div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
                     <input
+                      data-1p-ignore
                       type="date"
                       value={interviewDateOnly}
                       onChange={e => setInterviewDateOnly(e.target.value)}
                       style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13 }}
                     />
                     <select
+                      data-1p-ignore
                       value={interviewTime}
                       onChange={e => setInterviewTime(e.target.value)}
                       style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, minWidth: 100 }}
@@ -474,14 +471,39 @@ function Card({ app, onAdvance, onStepBack, onReject, onEditNote, onEditMember, 
                   }}>不合格・終了</button>
                 </div>
               )}
-              {app.stepIdx > 0 && !pendingDate && (
-                <div style={{ marginTop: 8 }}>
+              <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                {app.stepIdx > 0 && !pendingDate ? (
                   <button onClick={() => onStepBack(app.id)} disabled={loading} style={{
                     fontSize: 11, color: "#bbb", background: "none", border: "none",
                     cursor: "pointer", padding: 0, textDecoration: "underline",
                   }}>← 前のステップに戻す</button>
-                </div>
-              )}
+                ) : <span />}
+                <button onClick={() => onEdit(app)} style={{
+                  fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "1px solid #ddd",
+                  background: "#fff", color: "#666", cursor: "pointer", fontWeight: 600,
+                }}><span style={{ display: "inline-block", transform: "rotate(130deg)" }}>✏</span> 編集</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                {app.rejected && (
+                  <>
+                    <button onClick={() => onUnreject(app.id)} disabled={loading} style={{
+                      padding: "7px 16px", borderRadius: 6, border: "1px solid #ddd",
+                      background: "#fff", color: "#2563eb", fontWeight: 600, fontSize: 12, cursor: "pointer",
+                    }}>↩ 対応中に戻す</button>
+                    <button onClick={() => onDelete(app.id)} disabled={loading} style={{
+                      padding: "7px 16px", borderRadius: 6, border: "1px solid #fca5a5",
+                      background: "#fff", color: "#dc2626", fontWeight: 600, fontSize: 12, cursor: "pointer",
+                    }}>🗑 削除</button>
+                  </>
+                )}
+              </div>
+              <button onClick={() => onEdit(app)} style={{
+                fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "1px solid #ddd",
+                background: "#fff", color: "#666", cursor: "pointer", fontWeight: 600,
+              }}><span style={{ display: "inline-block", transform: "rotate(130deg)" }}>✏</span> 編集</button>
             </div>
           )}
         </div>
@@ -518,11 +540,11 @@ function AddModal({ onClose, onAdd, saving }) {
         <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を追加</div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
-          <input value={name} onChange={e => setName(e.target.value)} style={s} placeholder="例: 山田 太郎" />
+          <input data-1p-ignore value={name} onChange={e => setName(e.target.value)} style={s} placeholder="例: 山田 太郎" />
         </div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>フロー</label>
-          <select value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
+          <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
             {FLOW_OPTIONS.map(({ group, flows }) => (
               <optgroup key={group} label={group}>
                 {flows.map(k => (
@@ -564,7 +586,7 @@ function AddModal({ onClose, onAdd, saving }) {
         )}
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
-          <select value={member} onChange={e => setMember(e.target.value)} style={s}>
+          <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} style={s}>
             {MEMBERS.map(m => <option key={m}>{m}</option>)}
           </select>
         </div>
@@ -623,11 +645,11 @@ function EditModal({ app, onClose, onSave, saving }) {
         <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を編集</div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
-          <input value={name} onChange={e => setName(e.target.value)} style={s} />
+          <input data-1p-ignore value={name} onChange={e => setName(e.target.value)} style={s} />
         </div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>フロー</label>
-          <select value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
+          <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
             {FLOW_OPTIONS.map(({ group, flows }) => (
               <optgroup key={group} label={group}>
                 {flows.map(k => (
@@ -669,7 +691,7 @@ function EditModal({ app, onClose, onSave, saving }) {
         )}
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
-          <select value={member} onChange={e => setMember(e.target.value)} style={s}>
+          <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} style={s}>
             {MEMBERS.map(m => <option key={m}>{m}</option>)}
           </select>
         </div>
@@ -905,6 +927,28 @@ export default function App() {
     setLoadingId(null);
   };
 
+  const unreject = async (id) => {
+    if (!window.confirm("対応中に戻しますか？")) return;
+    setLoadingId(id);
+    try {
+      const res = await apiPost({ action: "update", id, rejected: false });
+      if (res.ok) setApplicants(prev => prev.map(a => a.id === id ? { ...a, rejected: false } : a));
+      else alert("更新に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
+    setLoadingId(null);
+  };
+
+  const deleteApp = async (id) => {
+    if (!window.confirm("この応募者を完全に削除しますか？この操作は取り消せません。")) return;
+    setLoadingId(id);
+    try {
+      const res = await apiPost({ action: "delete", id });
+      if (res.ok) setApplicants(prev => prev.filter(a => a.id !== id));
+      else alert("削除に失敗しました");
+    } catch { alert("通信エラーが発生しました"); }
+    setLoadingId(null);
+  };
+
   const editNote = async (id, note) => {
     try {
       const res = await apiPost({ action: "update", id, note });
@@ -976,7 +1020,7 @@ export default function App() {
 
       {activeTab === "list" && <div style={{ maxWidth: 820, margin: "0 auto", padding: "20px 16px 0" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="氏名で検索…"
+          <input data-1p-ignore value={search} onChange={e => setSearch(e.target.value)} placeholder="氏名で検索…"
             style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, width: 160 }} />
           <button onClick={() => setFilter("all")} style={{
             padding: "6px 14px", borderRadius: 20, border: "1px solid #ddd", fontSize: 12,
@@ -999,7 +1043,7 @@ export default function App() {
         )}
         {active.map(app => (
           <Card key={app.id} app={app}
-            onAdvance={advance} onStepBack={stepBack} onReject={reject} onEditNote={editNote} onEditMember={editMember}
+            onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject} onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
             onEdit={(a) => setShowEdit(a)}
             expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
             loading={loadingId === app.id} />
@@ -1013,7 +1057,7 @@ export default function App() {
             }}>{showDone ? "▾" : "▸"} 完了・終了 ({done.length})</button>
             {showDone && done.map(app => (
               <Card key={app.id} app={app}
-                onAdvance={advance} onStepBack={stepBack} onReject={reject} onEditNote={editNote} onEditMember={editMember}
+                onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject} onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
                 onEdit={(a) => setShowEdit(a)}
                 expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
                 loading={loadingId === app.id} />
