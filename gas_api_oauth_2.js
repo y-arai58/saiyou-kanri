@@ -10,7 +10,8 @@ const SHEET_NAME = "applicants";
 const HEADERS = [
   "id", "name", "flow", "stepIdx", "member",
   "source", "note", "rejected", "created",
-  "interviewDate", "scheduledDate", "interview1Date", "interview2Date"
+  "interviewDate", "scheduledDate", "interview1Date", "interview2Date",
+  "stepUpdatedAt"
 ];
 
 function getSheet() {
@@ -56,6 +57,7 @@ function doGet(e) {
     }
 
     if (action === "add") {
+      const now = new Date().toISOString();
       const newRow = {
         id: Date.now().toString(),
         name: p.name,
@@ -65,7 +67,8 @@ function doGet(e) {
         source: p.source || "採用サイト",
         note: p.note || "",
         rejected: false,
-        created: new Date().toISOString().slice(0, 10),
+        created: now.slice(0, 10),
+        stepUpdatedAt: now,
       };
       sheet.appendRow(rowToArray(newRow));
       return jsonResponse({ ok: true, data: newRow });
@@ -79,10 +82,16 @@ function doGet(e) {
           HEADERS.forEach((h, j) => { obj[h] = rows[i][j]; });
           obj.stepIdx = Number(obj.stepIdx);
           obj.rejected = obj.rejected === true || obj.rejected === "TRUE";
-          if (p.stepIdx !== undefined) obj.stepIdx = Number(p.stepIdx);
+          if (p.stepIdx !== undefined) {
+            obj.stepIdx = Number(p.stepIdx);
+            obj.stepUpdatedAt = new Date().toISOString();
+          }
           if (p.rejected !== undefined) obj.rejected = p.rejected === "true";
           if (p.note !== undefined) obj.note = p.note;
           if (p.member !== undefined) obj.member = p.member;
+          if (p.name !== undefined) obj.name = p.name;
+          if (p.flow !== undefined) obj.flow = p.flow;
+          if (p.source !== undefined) obj.source = p.source;
           if (p.interviewDate !== undefined) obj.interviewDate = p.interviewDate;
           if (p.scheduledDate !== undefined) obj.scheduledDate = p.scheduledDate;
           if (p.interview1Date !== undefined) obj.interview1Date = p.interview1Date;
