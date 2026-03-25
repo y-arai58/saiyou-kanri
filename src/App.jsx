@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 const GAS_URL = import.meta.env.VITE_GAS_URL;
+const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD;
 
 const FORMS = {
   chuto: { label: "中途用フォーム", url: "https://forms.gle/2hCrxjyyHc1D3n9h9" },
@@ -635,9 +636,78 @@ function CalendarView({ applicants }) {
 }
 
 // =====================================================
+//  ログイン画面
+// =====================================================
+function LoginScreen({ onLogin }) {
+  const [pw, setPw] = useState("");
+  const [error, setError] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (pw === APP_PASSWORD) {
+      sessionStorage.setItem("saiyou_auth", "1");
+      onLogin();
+    } else {
+      setError(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
+  return (
+    <div style={{
+      fontFamily: "'Hiragino Sans', 'Noto Sans JP', sans-serif",
+      background: "#f2f2f0", minHeight: "100vh",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <form onSubmit={handleSubmit} style={{
+        background: "#fff", borderRadius: 16, padding: "40px 36px", width: 360, maxWidth: "90vw",
+        boxShadow: "0 8px 40px #0000000f", textAlign: "center",
+        animation: shake ? "shake 0.4s ease" : "none",
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 22, color: "#1a1a1a", marginBottom: 6 }}>採用管理</div>
+        <div style={{ fontSize: 13, color: "#999", marginBottom: 28 }}>パスワードを入力してください</div>
+        <input
+          type="password"
+          value={pw}
+          onChange={e => { setPw(e.target.value); setError(false); }}
+          placeholder="パスワード"
+          autoFocus
+          style={{
+            width: "100%", padding: "12px 16px", borderRadius: 8, fontSize: 15,
+            border: `1.5px solid ${error ? "#e53e3e" : "#ddd"}`,
+            boxSizing: "border-box", outline: "none", marginBottom: 8,
+            transition: "border-color 0.2s",
+          }}
+        />
+        {error && <div style={{ fontSize: 12, color: "#e53e3e", marginBottom: 8, fontWeight: 600 }}>パスワードが正しくありません</div>}
+        <button type="submit" style={{
+          width: "100%", padding: "12px 0", borderRadius: 8, border: "none",
+          background: "#1a1a1a", color: "#fff", fontWeight: 700, fontSize: 15,
+          cursor: "pointer", marginTop: 8,
+        }}>ログイン</button>
+      </form>
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-6px); }
+          80% { transform: translateX(6px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// =====================================================
 //  メインアプリ
 // =====================================================
 export default function App() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("saiyou_auth") === "1");
+
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
   const [applicants, setApplicants] = useState([]);
   const [fetchState, setFetchState] = useState("idle");
   const [loadingId, setLoadingId] = useState(null);
