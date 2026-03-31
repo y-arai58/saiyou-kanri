@@ -15,18 +15,13 @@ const CH = {
 
 const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷", "伊藤"];
 
-// =====================================================
-//  フロー定義
-// =====================================================
 const FLOWS = {
-  // 中途: カジュアル面談
   chuto_casual: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "schedule", label: "日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "casual", label: "面談（日程確定済み）", action: "カジュアル面談を実施する" },
     { id: "done", label: "面談完了", action: null },
   ],
-  // 中途: 採用面接
   chuto_mensetsu: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -35,14 +30,12 @@ const FLOWS = {
     { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
-  // 新卒: 会社説明
   shinsotsu_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容・希望日程を確認する", ch: "form_entry" },
     { id: "schedule", label: "日程確定・連絡", action: "フォームの希望日程から担当者と日程を決定し、確定日程を応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
-  // 新卒: 本選考
   shinsotsu_honsenkou: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -54,7 +47,6 @@ const FLOWS = {
     { id: "interview2_judge", label: "2次面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
-  // 長期インターン：採用サイト経由（エンジニア）
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
@@ -63,7 +55,6 @@ const FLOWS = {
     { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
-  // 長期インターン：ゼロワン経由（エンジニア）
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
     { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
@@ -74,24 +65,47 @@ const FLOWS = {
 };
 
 const FLOW_LABELS = {
-  chuto_casual: "中途｜カジュアル面談",
+  chuto_casual: "中途｜カジュアル",
   chuto_mensetsu: "中途｜採用面接",
   shinsotsu_kaisetsu: "新卒｜会社説明",
   shinsotsu_honsenkou: "新卒｜本選考",
-  intern_site_eng: "長期インターン｜採用サイト",
-  intern_zero_eng: "長期インターン｜ゼロワン",
+  intern_site_eng: "インターン｜採用サイト",
+  intern_zero_eng: "インターン｜ゼロワン",
 };
 
-const FLOW_COLORS = {
-  chuto_casual: "#e05a3a",
-  chuto_mensetsu: "#c0392b",
-  shinsotsu_kaisetsu: "#1a56db",
-  shinsotsu_honsenkou: "#2d6be4",
-  intern_site_eng: "#6d28d9",
-  intern_zero_eng: "#7c3aed",
-};
+// 日程確定済み（当日まで待機）のステップID
+const SCHEDULED_STEP_IDS = new Set([
+  "interview_scheduled", // 面接（日程確定済み）
+  "casual",              // 面談（日程確定済み）
+  "kaisetsu",            // 会社説明（日程確定済み）
+  "interview1",          // 1次面接（日程確定済み）
+  "interview2",          // 2次面接（日程確定済み）
+]);
 
-// 追加モーダル用：グループ化した選択肢（応募経路はインターン選択時に別途切り替え）
+// 候補者返信待ちのステップID
+const AWAITING_STEP_IDS = new Set([
+  "schedule",            // 日程調整中
+  "shorui_pass",         // 書類通過・日程調整中
+  "interview2_sched",    // 2次日程調整中
+]);
+
+// 応募者のステップカテゴリを返す
+function getStepCategory(app) {
+  const stepId = FLOWS[app.flow]?.[app.stepIdx]?.id;
+  if (!stepId) return "action";
+  if (SCHEDULED_STEP_IDS.has(stepId)) return "scheduled";
+  if (AWAITING_STEP_IDS.has(stepId)) return "awaiting";
+  return "action";
+}
+
+// フィルタータブ用のグループ
+const FILTER_TABS = [
+  { key: "all", label: "全員" },
+  { key: "chuto", label: "中途" },
+  { key: "shinsotsu", label: "新卒" },
+  { key: "intern", label: "インターン" },
+];
+
 const FLOW_OPTIONS = [
   { group: "中途", flows: ["chuto_casual", "chuto_mensetsu"] },
   { group: "新卒", flows: ["shinsotsu_kaisetsu", "shinsotsu_honsenkou"] },
@@ -103,7 +117,6 @@ const FLOW_OPTION_LABELS = {
   intern_eng: "長期インターン",
 };
 
-// baseFlow + internRoute → 実際のフローキー・応募経路
 function resolveFlow(baseFlow, internRoute) {
   if (baseFlow === "intern_eng") {
     return internRoute === "ゼロワン" ? "intern_zero_eng" : "intern_site_eng";
@@ -114,18 +127,11 @@ function resolveSource(baseFlow, internRoute) {
   return baseFlow === "intern_eng" ? internRoute : "採用サイト";
 }
 
-// =====================================================
-//  API
-// =====================================================
-// データ取得（list）
 async function apiGet(action) {
   const res = await fetch(`${GAS_URL}?action=${action}`);
   return res.json();
 }
 
-// データ書き込み（add / update）
-// ※ GASはPOSTのCORSプリフライトに対応していないため、GETクエリパラメータで送信する
-// ※ URLSearchParams は文字列のみ受け付けるので boolean/number は事前に変換
 async function apiPost(body) {
   const params = { ...body };
   if (params.rejected !== undefined) params.rejected = String(params.rejected);
@@ -135,7 +141,6 @@ async function apiPost(body) {
   return res.json();
 }
 
-// フローの全ステップから dateField を収集（重複除去）
 function getFlowDateFields(flow) {
   const seen = new Set();
   return (FLOWS[flow] ?? []).filter(s => s.dateInput && s.dateField).reduce((acc, s) => {
@@ -148,11 +153,8 @@ const TIME_SLOTS = Array.from({ length: 17 }, (_, i) => {
   const h = String(11 + Math.floor(i / 2)).padStart(2, "0");
   const m = i % 2 === 0 ? "00" : "30";
   return `${h}:${m}`;
-}); // 11:00〜19:00
+});
 
-// =====================================================
-//  ユーティリティ
-// =====================================================
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -172,54 +174,36 @@ function getDaysStalled(app) {
   if (!ref) return 0;
   const d = new Date(ref);
   if (isNaN(d.getTime())) return 0;
-  const now = new Date();
-  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+  return Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
+}
+
+// フローごとのバッジ色
+const FLOW_BADGE = {
+  chuto_casual: { bg: "bg-[#dbe1ff]", text: "text-[#00174d]" },
+  chuto_mensetsu: { bg: "bg-[#dbe1ff]", text: "text-[#00174d]" },
+  shinsotsu_kaisetsu: { bg: "bg-[#ebddff]", text: "text-[#250059]" },
+  shinsotsu_honsenkou: { bg: "bg-[#ebddff]", text: "text-[#250059]" },
+  intern_site_eng: { bg: "bg-[#ffdad2]", text: "text-[#3d0700]" },
+  intern_zero_eng: { bg: "bg-[#ffdad2]", text: "text-[#3d0700]" },
+};
+
+// プログレスバーの進捗割合
+function progressPercent(flow, stepIdx) {
+  const steps = FLOWS[flow] ?? [];
+  if (steps.length <= 1) return 100;
+  return Math.round((stepIdx / (steps.length - 1)) * 100);
 }
 
 // =====================================================
 //  小コンポーネント
 // =====================================================
-function Tag({ flow }) {
-  const c = FLOW_COLORS[flow];
-  return (
-    <span style={{
-      background: c + "18", color: c, border: `1px solid ${c}40`,
-      borderRadius: 4, fontSize: 11, fontWeight: 700,
-      padding: "2px 8px", whiteSpace: "nowrap",
-    }}>{FLOW_LABELS[flow]}</span>
-  );
-}
-
-function StepBar({ flow, stepIdx }) {
-  const steps = FLOWS[flow] ?? [];
-  const c = FLOW_COLORS[flow];
-  return (
-    <div style={{ display: "flex", alignItems: "center", marginTop: 6 }}>
-      {steps.map((s, i) => (
-        <div key={s.id} style={{ display: "flex", alignItems: "center", flex: i < steps.length - 1 ? 1 : 0 }}>
-          <div style={{
-            width: 9, height: 9, borderRadius: "50%", flexShrink: 0,
-            background: i <= stepIdx ? c : "#ddd",
-            outline: i === stepIdx ? `3px solid ${c}40` : "none",
-          }} />
-          {i < steps.length - 1 && (
-            <div style={{ flex: 1, height: 2, background: i < stepIdx ? c : "#e8e8e8", minWidth: 6 }} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function CopyBtn({ url }) {
   const [ok, setOk] = useState(false);
   return (
-    <button onClick={() => { navigator.clipboard.writeText(url); setOk(true); setTimeout(() => setOk(false), 1500); }}
-      style={{
-        fontSize: 11, padding: "3px 10px", borderRadius: 4, border: "1px solid #ccc",
-        background: ok ? "#e8f5e9" : "#f5f5f5", color: ok ? "#2e7d32" : "#555",
-        cursor: "pointer", fontWeight: 600,
-      }}>
+    <button
+      onClick={() => { navigator.clipboard.writeText(url); setOk(true); setTimeout(() => setOk(false), 1500); }}
+      className={`text-[11px] px-2.5 py-1 rounded border font-semibold transition-colors ${ok ? "bg-green-50 border-green-300 text-green-700" : "bg-[var(--color-surface-container-low)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"}`}
+    >
       {ok ? "コピー済" : "URLコピー"}
     </button>
   );
@@ -230,25 +214,34 @@ function NoteEditor({ note, onSave }) {
   const [editing, setEditing] = useState(false);
   useEffect(() => { setVal(note); }, [note]);
   return (
-    <div style={{ marginBottom: 4 }}>
-      <div style={{ fontSize: 11, color: "#999", fontWeight: 700, marginBottom: 4 }}>メモ</div>
+    <div>
+      <div className="text-[10px] text-[var(--color-outline)] font-bold mb-1.5 uppercase tracking-wider">メモ</div>
       {editing ? (
         <div>
-          <textarea value={val} onChange={e => setVal(e.target.value)} rows={2}
-            style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
-          <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-            <button onClick={() => { onSave(val); setEditing(false); }}
-              style={{ fontSize: 12, padding: "4px 14px", borderRadius: 5, border: "none", background: "#1a1a1a", color: "#fff", cursor: "pointer", fontWeight: 700 }}>保存</button>
-            <button onClick={() => { setVal(note); setEditing(false); }}
-              style={{ fontSize: 12, padding: "4px 12px", borderRadius: 5, border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}>キャンセル</button>
+          <textarea
+            data-1p-ignore
+            value={val}
+            onChange={e => setVal(e.target.value)}
+            rows={2}
+            className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 bg-white"
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => { onSave(val); setEditing(false); }}
+              className="text-xs px-3 py-1.5 rounded-lg bg-[var(--color-on-surface)] text-white font-bold"
+            >保存</button>
+            <button
+              onClick={() => { setVal(note); setEditing(false); }}
+              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"
+            >キャンセル</button>
           </div>
         </div>
       ) : (
-        <div onClick={() => setEditing(true)} style={{
-          fontSize: 13, color: val ? "#333" : "#bbb", background: "#fff",
-          border: "1px solid #eee", borderRadius: 6, padding: "8px 12px", cursor: "text", minHeight: 34,
-        }}>
-          {val || "クリックしてメモを追加…"}
+        <div
+          onClick={() => setEditing(true)}
+          className="text-sm text-[var(--color-on-surface-variant)] bg-white border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 min-h-[34px] cursor-text"
+        >
+          {val || <span className="text-[var(--color-outline)]">クリックしてメモを追加…</span>}
         </div>
       )}
     </div>
@@ -258,207 +251,229 @@ function NoteEditor({ note, onSave }) {
 // =====================================================
 //  応募者カード
 // =====================================================
-function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEditNote, onEditMember, onEdit, expanded, onToggle, loading }) {
+function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEditNote, onEditMember, onEdit, expanded, onToggle, loading, hideStalled }) {
   const steps = FLOWS[app.flow] ?? [];
   const step = steps[app.stepIdx];
   const next = steps[app.stepIdx + 1];
   const isDone = step?.id === "done" || app.rejected;
-  const c = FLOW_COLORS[app.flow];
   const daysStalled = getDaysStalled(app);
-  const isStalled = !isDone && daysStalled >= 5;
+  const isStalled = !isDone && !hideStalled && daysStalled >= 5;
   const [pendingDate, setPendingDate] = useState(false);
   const [interviewDateOnly, setInterviewDateOnly] = useState("");
   const [interviewTime, setInterviewTime] = useState("");
   const interviewDate = interviewDateOnly && interviewTime ? `${interviewDateOnly}T${interviewTime}` : "";
-
   const resetDate = () => { setInterviewDateOnly(""); setInterviewTime(""); };
+  const pct = progressPercent(app.flow, app.stepIdx);
+  const badge = FLOW_BADGE[app.flow] ?? { bg: "bg-[var(--color-surface-container)]", text: "text-[var(--color-on-surface-variant)]" };
 
   return (
-    <div style={{
-      background: "#fff", border: `1px solid ${expanded ? c + "70" : isStalled ? "#f59e0b60" : "#e8e8e8"}`,
-      borderRadius: 10, marginBottom: 10, overflow: "hidden",
-      boxShadow: expanded ? `0 2px 14px ${c}1a` : "0 1px 3px #0000000a",
-      borderLeft: isStalled ? "4px solid #f59e0b" : `1px solid ${expanded ? c + "70" : "#e8e8e8"}`,
-      opacity: loading ? 0.6 : 1, transition: "opacity 0.2s, border-color 0.2s",
-    }}>
-      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-          background: c + "22", color: c,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontWeight: 800, fontSize: 15,
-        }}>{app.name?.[0] ?? ""}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a" }}>{app.name}</span>
-            <Tag flow={app.flow} />
-            {app.rejected && <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>終了</span>}
-            {!app.rejected && step?.id === "done" && <span style={{ fontSize: 11, color: "#43a047", fontWeight: 700 }}>✓ 採用完了</span>}
-            {isStalled && <span style={{
-              fontSize: 10, fontWeight: 700, color: "#92400e", background: "#fef3c7",
-              border: "1px solid #fcd34d", borderRadius: 4, padding: "1px 7px", whiteSpace: "nowrap",
-            }}>⚠ {daysStalled}日滞留</span>}
-          </div>
-          <StepBar flow={app.flow} stepIdx={app.stepIdx} />
+    <div className={`bg-white rounded-2xl overflow-hidden transition-all duration-200 ${isStalled ? "border-t-2 border-amber-400 shadow-md" : "border border-[var(--color-outline-variant)]"} ${loading ? "opacity-60" : ""} ${expanded ? "shadow-lg" : "hover:shadow-md"}`}>
+      {/* カードヘッダー（クリックで展開） */}
+      <div onClick={onToggle} className="flex items-center gap-3 px-4 py-3.5 cursor-pointer">
+        {/* アバター */}
+        <div className="w-10 h-10 rounded-xl flex-shrink-0 bg-[var(--color-primary-fixed)] flex items-center justify-center text-[var(--color-primary)] font-extrabold text-base">
+          {app.name?.[0] ?? "?"}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: 12, color: "#777", background: "#f2f2f2", borderRadius: 4, padding: "2px 8px" }}>{app.member}</span>
-          <span style={{ fontSize: 16, color: "#bbb", display: "inline-block", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>⌄</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <span className="font-bold text-sm text-[var(--color-on-surface)]">{app.name}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
+              {FLOW_LABELS[app.flow]}
+            </span>
+            {app.rejected && <span className="text-[10px] text-[var(--color-outline)] font-semibold">終了</span>}
+            {!app.rejected && step?.id === "done" && <span className="text-[10px] text-emerald-600 font-bold">✓ 採用完了</span>}
+            {isStalled && (
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                ⚠ {daysStalled}日滞留
+              </span>
+            )}
+          </div>
+          {/* プログレスバー */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1 bg-[var(--color-surface-container-highest)] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-bold text-[var(--color-primary)] whitespace-nowrap">{step?.label ?? ""}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container-low)] rounded-full px-2.5 py-1 font-medium">
+            {app.member}
+          </span>
+          <span className={`material-symbols-outlined text-[var(--color-outline)] text-lg transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}>
+            expand_more
+          </span>
         </div>
       </div>
 
+      {/* 展開パネル */}
       {expanded && (
-        <div style={{ borderTop: "1px solid #f0f0f0", padding: "14px 16px", background: "#fafafa" }}>
+        <div className="border-t border-[var(--color-outline-variant)] px-4 py-4 bg-[var(--color-surface-container-low)] space-y-4">
+          {/* 滞留警告 */}
           {isStalled && (
-            <div style={{
-              background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8,
-              padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <span style={{ fontSize: 18 }}>⚠️</span>
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <span className="material-symbols-outlined text-amber-500 text-xl mt-0.5">warning</span>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>{daysStalled}日間このステップに滞留しています</div>
-                <div style={{ fontSize: 11, color: "#b45309", marginTop: 2 }}>最終更新: {formatDateTime(app.stepUpdatedAt || app.created)}</div>
+                <div className="text-sm font-bold text-amber-800">{daysStalled}日間このステップに滞留しています</div>
+                <div className="text-xs text-amber-600 mt-0.5">最終更新: {formatDateTime(app.stepUpdatedAt || app.created)}</div>
               </div>
             </div>
           )}
-          <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
-            <div style={{ flex: 1, minWidth: 180, background: "#fff", border: "1px solid #eee", borderRadius: 8, padding: "10px 14px" }}>
-              <div style={{ fontSize: 11, color: "#999", fontWeight: 700, marginBottom: 4 }}>現在のステータス</div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: isDone ? "#43a047" : "#1a1a1a" }}>
+
+          {/* ステータス + アクション */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-white border border-[var(--color-outline-variant)] rounded-xl px-4 py-3">
+              <div className="text-[10px] text-[var(--color-outline)] font-bold uppercase tracking-wider mb-1">現在のステータス</div>
+              <div className="font-bold text-sm text-[var(--color-on-surface)]">
                 {app.rejected ? "不合格・終了" : step?.label}
               </div>
-              <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{app.stepIdx + 1} / {steps.length} ステップ</div>
+              <div className="text-[10px] text-[var(--color-outline)] mt-1">{app.stepIdx + 1} / {steps.length} ステップ</div>
             </div>
             {!isDone && step?.action && (
-              <div style={{ flex: 2, minWidth: 200, background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "10px 14px" }}>
-                <div style={{ fontSize: 11, color: c, fontWeight: 700, marginBottom: 4 }}>担当者アクション</div>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{step.action}</div>
+              <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed-dim)] rounded-xl px-4 py-3">
+                <div className="text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-wider mb-1">担当者アクション</div>
+                <div className="font-semibold text-sm text-[var(--color-on-primary-fixed)]">{step.action}</div>
                 {step.form && (
-                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "#555" }}>{FORMS[step.form].label}</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-[var(--color-on-primary-fixed-variant)]">{FORMS[step.form].label}</span>
                     <CopyBtn url={FORMS[step.form].url} />
                   </div>
                 )}
                 {step.ch && (
-                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: "#555" }}>{CH[step.ch].label}</span>
-                    <a href={CH[step.ch].url} target="_blank" rel="noreferrer"
-                      style={{ fontSize: 11, padding: "3px 10px", borderRadius: 4, border: "1px solid #ccc", background: "#f5f5f5", color: "#555", cursor: "pointer", fontWeight: 600, textDecoration: "none" }}>
-                      chを開く
-                    </a>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-[var(--color-on-primary-fixed-variant)]">{CH[step.ch].label}</span>
+                    <a
+                      href={CH[step.ch].url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] px-2.5 py-1 rounded border border-[var(--color-outline-variant)] bg-white text-[var(--color-on-surface-variant)] font-semibold no-underline"
+                    >chを開く</a>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {/* メタ情報 */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-outline)]">
             <span>応募経路: {app.source}</span>
             <span>応募日: {formatDate(app.created)}</span>
             {getFlowDateFields(app.flow).map(({ field, label }) => app[field] && (
-              <span key={field} style={{ color: "#6d28d9", fontWeight: 700 }}>{label}: {formatDateTime(app[field])}</span>
+              <span key={field} className="text-[var(--color-secondary)] font-bold">{label}: {formatDateTime(app[field])}</span>
             ))}
           </div>
 
-          <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#777", fontWeight: 600 }}>担当者:</span>
-            <select data-1p-ignore value={app.member} onChange={e => onEditMember(app.id, e.target.value)}
-              style={{ fontSize: 13, padding: "4px 8px", borderRadius: 6, border: "1px solid #ddd" }}>
+          {/* 担当者変更 */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--color-outline)] font-bold">担当者:</span>
+            <select
+              data-1p-ignore
+              value={app.member}
+              onChange={e => onEditMember(app.id, e.target.value)}
+              className="text-sm px-2 py-1 rounded-lg border border-[var(--color-outline-variant)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            >
               {MEMBERS.map(m => <option key={m}>{m}</option>)}
             </select>
           </div>
 
+          {/* メモ */}
           <NoteEditor note={app.note} onSave={note => onEditNote(app.id, note)} />
 
+          {/* アクションボタン */}
           {!isDone ? (
-            <div style={{ marginTop: 12 }}>
+            <div>
               {next && step?.dateInput && pendingDate ? (
-                <div style={{ background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "12px 14px", marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, color: c, fontWeight: 700, marginBottom: 8 }}>{step.dateLabel}を入力してください</div>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed-dim)] rounded-xl px-4 py-3 space-y-3">
+                  <div className="text-xs font-bold text-[var(--color-primary)]">{step.dateLabel}を入力してください</div>
+                  <div className="flex gap-2 flex-wrap">
                     <input
                       data-1p-ignore
                       type="date"
                       value={interviewDateOnly}
                       onChange={e => setInterviewDateOnly(e.target.value)}
-                      style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13 }}
+                      className="px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
                     />
                     <select
                       data-1p-ignore
                       value={interviewTime}
                       onChange={e => setInterviewTime(e.target.value)}
-                      style={{ padding: "7px 10px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, minWidth: 100 }}
+                      className="px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 min-w-[110px]"
                     >
                       <option value="">時刻を選択</option>
                       {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => { onAdvance(app.id, interviewDate, step.dateField); setPendingDate(false); resetDate(); }}
                       disabled={loading || !interviewDate}
-                      style={{
-                        padding: "8px 18px", borderRadius: 6, border: "none",
-                        background: interviewDate ? c : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: interviewDate ? "pointer" : "default",
-                      }}
+                      className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                     >確定 → {next.label}</button>
-                    <button onClick={() => { setPendingDate(false); resetDate(); }} style={{
-                      padding: "8px 14px", borderRadius: 6, border: "1px solid #ddd",
-                      background: "#fff", fontSize: 13, cursor: "pointer",
-                    }}>キャンセル</button>
+                    <button
+                      onClick={() => { setPendingDate(false); resetDate(); }}
+                      className="px-4 py-2 rounded-xl border border-[var(--color-outline-variant)] text-sm text-[var(--color-on-surface-variant)]"
+                    >キャンセル</button>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="flex gap-2 flex-wrap">
                   {next && (
                     <button
                       onClick={() => step?.dateInput ? setPendingDate(true) : onAdvance(app.id)}
                       disabled={loading}
-                      style={{
-                        padding: "9px 20px", borderRadius: 6, border: "none",
-                        background: c, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
-                      }}
+                      className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold disabled:opacity-40"
                     >次へ → {next.label}</button>
                   )}
-                  <button onClick={() => onReject(app.id)} disabled={loading} style={{
-                    padding: "9px 18px", borderRadius: 6, border: "1px solid #e0e0e0",
-                    background: "#fff", color: "#c0392b", fontWeight: 600, fontSize: 13, cursor: "pointer",
-                  }}>不合格・終了</button>
+                  <button
+                    onClick={() => onReject(app.id)}
+                    disabled={loading}
+                    className="px-4 py-2 rounded-xl border border-[var(--color-outline-variant)] text-[var(--color-error)] text-sm font-semibold bg-white"
+                  >不合格・終了</button>
                 </div>
               )}
-              <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div className="flex items-center justify-between mt-2">
                 {app.stepIdx > 0 && !pendingDate ? (
-                  <button onClick={() => onStepBack(app.id)} disabled={loading} style={{
-                    fontSize: 11, color: "#bbb", background: "none", border: "none",
-                    cursor: "pointer", padding: 0, textDecoration: "underline",
-                  }}>← 前のステップに戻す</button>
+                  <button onClick={() => onStepBack(app.id)} disabled={loading} className="text-xs text-[var(--color-outline)] underline bg-transparent border-0 cursor-pointer p-0">
+                    ← 前のステップに戻す
+                  </button>
                 ) : <span />}
-                <button onClick={() => onEdit(app)} style={{
-                  fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "1px solid #ddd",
-                  background: "#fff", color: "#666", cursor: "pointer", fontWeight: 600,
-                }}><span style={{ display: "inline-block", transform: "rotate(130deg)" }}>✏</span> 編集</button>
+                <button
+                  onClick={() => onEdit(app)}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] bg-white font-semibold"
+                >
+                  <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">edit</span>編集
+                </button>
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
                 {app.rejected && (
                   <>
-                    <button onClick={() => onUnreject(app.id)} disabled={loading} style={{
-                      padding: "7px 16px", borderRadius: 6, border: "1px solid #ddd",
-                      background: "#fff", color: "#2563eb", fontWeight: 600, fontSize: 12, cursor: "pointer",
-                    }}>↩ 対応中に戻す</button>
-                    <button onClick={() => onDelete(app.id)} disabled={loading} style={{
-                      padding: "7px 16px", borderRadius: 6, border: "1px solid #fca5a5",
-                      background: "#fff", color: "#dc2626", fontWeight: 600, fontSize: 12, cursor: "pointer",
-                    }}>🗑 削除</button>
+                    <button
+                      onClick={() => onUnreject(app.id)}
+                      disabled={loading}
+                      className="px-3 py-1.5 rounded-xl border border-[var(--color-outline-variant)] text-[var(--color-primary)] text-xs font-semibold bg-white"
+                    >↩ 対応中に戻す</button>
+                    <button
+                      onClick={() => onDelete(app.id)}
+                      disabled={loading}
+                      className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 text-xs font-semibold bg-white"
+                    >
+                      <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">delete</span>削除
+                    </button>
                   </>
                 )}
               </div>
-              <button onClick={() => onEdit(app)} style={{
-                fontSize: 12, padding: "4px 12px", borderRadius: 6, border: "1px solid #ddd",
-                background: "#fff", color: "#666", cursor: "pointer", fontWeight: 600,
-              }}><span style={{ display: "inline-block", transform: "rotate(130deg)" }}>✏</span> 編集</button>
+              <button
+                onClick={() => onEdit(app)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] bg-white font-semibold"
+              >
+                <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">edit</span>編集
+              </button>
             </div>
           )}
         </div>
@@ -468,7 +483,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEd
 }
 
 // =====================================================
-//  追加モーダル（グループ付きselect）
+//  追加モーダル
 // =====================================================
 function AddModal({ onClose, onAdd, saving }) {
   const [name, setName] = useState("");
@@ -477,68 +492,71 @@ function AddModal({ onClose, onAdd, saving }) {
   const [member, setMember] = useState(MEMBERS[0]);
   const [note, setNote] = useState("");
   const isIntern = baseFlow === "intern_eng";
-  const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
+
   const handleAdd = () => {
     if (!name) return;
     onAdd({ name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member, note });
   };
+
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
+
+  const inputCls = "w-full px-3 py-2.5 rounded-xl border border-[var(--color-outline-variant)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20";
+
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 28, width: 440, maxWidth: "92vw", boxShadow: "0 8px 40px #0003" }}>
-        <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を追加</div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
-          <input data-1p-ignore value={name} onChange={e => setName(e.target.value)} style={s} placeholder="例: 山田 太郎" />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>フロー</label>
-          <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
-            {FLOW_OPTIONS.map(({ group, flows }) => (
-              <optgroup key={group} label={group}>
-                {flows.map(k => (
-                  <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
-        {isIntern && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>応募経路</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["採用サイト", "ゼロワン"].map(r => (
-                <button key={r} onClick={() => setInternRoute(r)} style={{
-                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  border: internRoute === r ? "2px solid #1a1a1a" : "1px solid #ddd",
-                  background: internRoute === r ? "#1a1a1a" : "#fff",
-                  color: internRoute === r ? "#fff" : "#555",
-                }}>{r}</button>
-              ))}
-            </div>
+    <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-3xl p-7 w-full max-w-md shadow-2xl">
+        <h3 className="font-headline font-extrabold text-xl text-[var(--color-on-surface)] mb-5">応募者を追加</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">氏名</label>
+            <input data-1p-ignore value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder="例: 山田 太郎" />
           </div>
-        )}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
-          <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} style={s}>
-            {MEMBERS.map(m => <option key={m}>{m}</option>)}
-          </select>
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">フロー</label>
+            <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} className={inputCls}>
+              {FLOW_OPTIONS.map(({ group, flows }) => (
+                <optgroup key={group} label={group}>
+                  {flows.map(k => <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          {isIntern && (
+            <div>
+              <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">応募経路</label>
+              <div className="flex gap-2">
+                {["採用サイト", "ゼロワン"].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setInternRoute(r)}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors ${internRoute === r ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]" : "bg-white text-[var(--color-on-surface-variant)] border-[var(--color-outline-variant)]"}`}
+                  >{r}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">担当者</label>
+            <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} className={inputCls}>
+              {MEMBERS.map(m => <option key={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">メモ（任意）</label>
+            <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className={`${inputCls} resize-none`} placeholder="初期メモがあれば…" />
+          </div>
         </div>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>メモ（任意）</label>
-          <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
-            style={{ ...s, resize: "none" }} placeholder="初期メモがあれば…" />
-        </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 14 }}>キャンセル</button>
-          <button onClick={handleAdd} disabled={!name || saving}
-            style={{ padding: "9px 22px", borderRadius: 6, border: "none", background: name ? "#1a1a1a" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 14, cursor: name ? "pointer" : "default" }}>
-            {saving ? "追加中…" : "追加"}
-          </button>
+        <div className="flex gap-3 justify-end mt-6">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[var(--color-outline-variant)] text-sm text-[var(--color-on-surface-variant)]">キャンセル</button>
+          <button
+            onClick={handleAdd}
+            disabled={!name || saving}
+            className="px-5 py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold disabled:opacity-40"
+          >{saving ? "追加中…" : "追加"}</button>
         </div>
       </div>
     </div>
@@ -550,76 +568,73 @@ function AddModal({ onClose, onAdd, saving }) {
 // =====================================================
 function EditModal({ app, onClose, onSave, saving }) {
   const [name, setName] = useState(app.name);
-  // baseFlow を逆算する
-  const inferBase = (flow) => {
-    if (flow.startsWith("intern") && flow.includes("eng")) return "intern_eng";
-    return flow;
-  };
+  const inferBase = (flow) => (flow.startsWith("intern") && flow.includes("eng")) ? "intern_eng" : flow;
   const inferRoute = (flow) => flow.includes("zero") ? "ゼロワン" : "採用サイト";
-
   const [baseFlow, setBaseFlow] = useState(inferBase(app.flow));
   const [internRoute, setInternRoute] = useState(inferRoute(app.flow));
   const [member, setMember] = useState(app.member);
   const isIntern = baseFlow === "intern_eng";
-  const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
+
   const handleSave = () => {
     if (!name) return;
-    const newFlow = resolveFlow(baseFlow, internRoute);
-    const newSource = resolveSource(baseFlow, internRoute);
-    onSave({ id: app.id, name, flow: newFlow, source: newSource, member });
+    onSave({ id: app.id, name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member });
   };
+
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
+
+  const inputCls = "w-full px-3 py-2.5 rounded-xl border border-[var(--color-outline-variant)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20";
+
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 28, width: 440, maxWidth: "92vw", boxShadow: "0 8px 40px #0003" }}>
-        <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 20 }}>応募者を編集</div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>氏名</label>
-          <input data-1p-ignore value={name} onChange={e => setName(e.target.value)} style={s} />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>フロー</label>
-          <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} style={s}>
-            {FLOW_OPTIONS.map(({ group, flows }) => (
-              <optgroup key={group} label={group}>
-                {flows.map(k => (
-                  <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
-        {isIntern && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>応募経路</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["採用サイト", "ゼロワン"].map(r => (
-                <button key={r} onClick={() => setInternRoute(r)} style={{
-                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  border: internRoute === r ? "2px solid #1a1a1a" : "1px solid #ddd",
-                  background: internRoute === r ? "#1a1a1a" : "#fff",
-                  color: internRoute === r ? "#fff" : "#555",
-                }}>{r}</button>
-              ))}
-            </div>
+    <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-3xl p-7 w-full max-w-md shadow-2xl">
+        <h3 className="font-headline font-extrabold text-xl text-[var(--color-on-surface)] mb-5">応募者を編集</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">氏名</label>
+            <input data-1p-ignore value={name} onChange={e => setName(e.target.value)} className={inputCls} />
           </div>
-        )}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
-          <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} style={s}>
-            {MEMBERS.map(m => <option key={m}>{m}</option>)}
-          </select>
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">フロー</label>
+            <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} className={inputCls}>
+              {FLOW_OPTIONS.map(({ group, flows }) => (
+                <optgroup key={group} label={group}>
+                  {flows.map(k => <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          {isIntern && (
+            <div>
+              <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">応募経路</label>
+              <div className="flex gap-2">
+                {["採用サイト", "ゼロワン"].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setInternRoute(r)}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors ${internRoute === r ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]" : "bg-white text-[var(--color-on-surface-variant)] border-[var(--color-outline-variant)]"}`}
+                  >{r}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">担当者</label>
+            <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} className={inputCls}>
+              {MEMBERS.map(m => <option key={m}>{m}</option>)}
+            </select>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 14 }}>キャンセル</button>
-          <button onClick={handleSave} disabled={!name || saving}
-            style={{ padding: "9px 22px", borderRadius: 6, border: "none", background: name ? "#1a1a1a" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 14, cursor: name ? "pointer" : "default" }}>
-            {saving ? "保存中…" : "保存"}
-          </button>
+        <div className="flex gap-3 justify-end mt-6">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[var(--color-outline-variant)] text-sm text-[var(--color-on-surface-variant)]">キャンセル</button>
+          <button
+            onClick={handleSave}
+            disabled={!name || saving}
+            className="px-5 py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold disabled:opacity-40"
+          >{saving ? "保存中…" : "保存"}</button>
         </div>
       </div>
     </div>
@@ -632,17 +647,17 @@ function EditModal({ app, onClose, onSave, saving }) {
 function CalendarView({ applicants }) {
   const today = new Date();
   const [yearMonth, setYearMonth] = useState({ year: today.getFullYear(), month: today.getMonth() });
+  const [selectedDay, setSelectedDay] = useState(null);
   const { year, month } = yearMonth;
 
   const events = useMemo(() => {
     const result = [];
     for (const app of applicants) {
-      const dateFields = getFlowDateFields(app.flow);
-      for (const { field, label } of dateFields) {
+      for (const { field, label } of getFlowDateFields(app.flow)) {
         if (app[field]) {
           const d = new Date(app[field]);
           if (!isNaN(d.getTime())) {
-            result.push({ date: d, name: app.name, label, flow: app.flow, color: FLOW_COLORS[app.flow] });
+            result.push({ date: d, name: app.name, label, flow: app.flow });
           }
         }
       }
@@ -661,50 +676,140 @@ function CalendarView({ applicants }) {
     e.date.getFullYear() === year && e.date.getMonth() === month && e.date.getDate() === day
   );
 
-  const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
-  const DOW_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
+  const MONTH_NAMES_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  // イベントバッジカラー（フロー別）
+  const eventColor = (flow) => {
+    if (flow.startsWith("chuto")) return "bg-[var(--color-primary-fixed)] text-[var(--color-on-primary-fixed)] border-l-2 border-[var(--color-primary)]";
+    if (flow.startsWith("shinsotsu")) return "bg-[var(--color-secondary-fixed)] text-[var(--color-on-secondary-fixed)] border-l-2 border-[var(--color-secondary)]";
+    return "bg-[var(--color-tertiary-fixed)] text-[var(--color-on-tertiary-fixed)] border-l-2 border-[var(--color-tertiary-container)]";
+  };
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-        <button onClick={prevMonth} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 16 }}>‹</button>
-        <div style={{ fontWeight: 700, fontSize: 18 }}>{year}年 {MONTH_NAMES[month]}</div>
-        <button onClick={nextMonth} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 16 }}>›</button>
+    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+      {/* ヘッダー */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+        <div>
+          <p className="text-[var(--color-primary)] font-headline font-bold tracking-widest text-xs uppercase mb-1">Recruitment Schedule</p>
+          <div className="flex items-center gap-4">
+            <h2 className="font-headline font-extrabold text-3xl text-[var(--color-on-surface)]">
+              {MONTH_NAMES_EN[month]} {year}
+            </h2>
+            <div className="flex gap-2">
+              <button onClick={prevMonth} className="p-2 rounded-full bg-[var(--color-surface-container-low)] hover:bg-[var(--color-surface-container)] transition-colors">
+                <span className="material-symbols-outlined text-[var(--color-on-surface-variant)]">chevron_left</span>
+              </button>
+              <button onClick={nextMonth} className="p-2 rounded-full bg-[var(--color-surface-container-low)] hover:bg-[var(--color-surface-container)] transition-colors">
+                <span className="material-symbols-outlined text-[var(--color-on-surface-variant)]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* 凡例 */}
+        <div className="flex flex-wrap gap-3 p-3 rounded-xl bg-[var(--color-surface-container-low)]">
+          {[
+            { label: "中途", cls: "bg-[var(--color-primary)]" },
+            { label: "新卒", cls: "bg-[var(--color-secondary)]" },
+            { label: "インターン", cls: "bg-[var(--color-tertiary-container)]" },
+          ].map(({ label, cls }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${cls}`} />
+              <span className="text-xs font-medium text-[var(--color-on-surface-variant)]">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: "#e0e0e0", borderRadius: 8, overflow: "hidden", border: "1px solid #e0e0e0" }}>
-        {DOW_NAMES.map((d, i) => (
-          <div key={d} style={{ background: "#f5f5f5", padding: "8px 4px", textAlign: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? "#e53e3e" : i === 6 ? "#3182ce" : "#666" }}>{d}</div>
-        ))}
-        {cells.map((day, i) => {
-          if (day === null) return <div key={`e${i}`} style={{ background: "#fafafa", minHeight: 90 }} />;
-          const dayEvents = getEventsForDay(day);
-          const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
-          const dow = (firstDow + day - 1) % 7;
-          return (
-            <div key={day} style={{ background: "#fff", minHeight: 90, padding: "6px 5px" }}>
-              <div style={{
-                fontSize: 12, fontWeight: isToday ? 800 : 500,
-                color: isToday ? "#fff" : dow === 0 ? "#e53e3e" : dow === 6 ? "#3182ce" : "#333",
-                background: isToday ? "#1a1a1a" : "transparent",
-                width: 22, height: 22, borderRadius: "50%",
-                display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4,
-              }}>{day}</div>
-              {dayEvents.map((ev, j) => {
+
+      {/* カレンダー本体 */}
+      <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-[var(--color-outline-variant)]">
+        {/* 曜日ヘッダー */}
+        <div className="grid grid-cols-7 bg-[var(--color-surface-container-high)] border-b border-[var(--color-outline-variant)]">
+          {DOW.map((d, i) => (
+            <div key={d} className={`py-3 text-center text-xs font-bold uppercase tracking-wider ${i === 0 || i === 6 ? "text-[var(--color-outline)]" : "text-[var(--color-on-surface-variant)]"}`}>
+              {d}
+            </div>
+          ))}
+        </div>
+        {/* グリッド */}
+        <div className="grid grid-cols-7" style={{ gridAutoRows: "minmax(90px, auto)" }}>
+          {cells.map((day, i) => {
+            if (day === null) return <div key={`e${i}`} className="bg-[var(--color-surface-container-low)] opacity-40 border-r border-b border-[var(--color-outline-variant)]" />;
+            const dayEvents = getEventsForDay(day);
+            const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+            const isSelected = selectedDay === day;
+            const dow = (firstDow + day - 1) % 7;
+            return (
+              <div
+                key={day}
+                onClick={() => setSelectedDay(isSelected ? null : day)}
+                className={`p-1 md:p-2 border-r border-b border-[var(--color-outline-variant)] cursor-pointer md:cursor-default ${isToday ? "bg-[var(--color-primary-fixed)]/30 ring-2 ring-inset ring-[var(--color-primary)]" : ""} ${isSelected ? "bg-[var(--color-secondary-fixed)]/40" : ""}`}
+              >
+                <div className="flex items-center gap-1 mb-1">
+                  <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-[var(--color-primary)] text-white" : dow === 0 ? "text-red-500" : dow === 6 ? "text-blue-500" : "text-[var(--color-on-surface-variant)]"}`}>
+                    {day}
+                  </span>
+                  {isToday && <span className="hidden md:inline text-[9px] font-bold text-[var(--color-primary)] uppercase">Today</span>}
+                </div>
+                {/* SP: ドット表示 */}
+                {dayEvents.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5 md:hidden">
+                    {dayEvents.map((ev, j) => (
+                      <span key={j} className={`w-2 h-2 rounded-full ${ev.flow.startsWith("chuto") ? "bg-[var(--color-primary)]" : ev.flow.startsWith("shinsotsu") ? "bg-[var(--color-secondary)]" : "bg-[var(--color-tertiary-container)]"}`} />
+                    ))}
+                  </div>
+                )}
+                {/* PC: テキストバッジ */}
+                <div className="hidden md:block space-y-0.5">
+                  {dayEvents.map((ev, j) => {
+                    const hh = ev.date.getHours();
+                    const mm = ev.date.getMinutes();
+                    const timeStr = (hh !== 0 || mm !== 0) ? `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")} ` : "";
+                    return (
+                      <div
+                        key={j}
+                        title={`${timeStr}${ev.name}（${ev.label}）`}
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded truncate ${eventColor(ev.flow)}`}
+                      >
+                        {timeStr}{ev.name}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SP: 選択日の予定詳細 */}
+      {selectedDay !== null && (
+        <div className="md:hidden mt-4 rounded-2xl bg-white border border-[var(--color-outline-variant)] shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-[var(--color-surface-container-high)] border-b border-[var(--color-outline-variant)]">
+            <p className="text-sm font-bold text-[var(--color-on-surface)]">{month + 1}月{selectedDay}日の予定</p>
+          </div>
+          {getEventsForDay(selectedDay).length === 0 ? (
+            <p className="px-4 py-4 text-sm text-[var(--color-on-surface-variant)]">予定はありません</p>
+          ) : (
+            <ul className="divide-y divide-[var(--color-outline-variant)]">
+              {getEventsForDay(selectedDay).map((ev, j) => {
                 const hh = ev.date.getHours();
                 const mm = ev.date.getMinutes();
-                const timeStr = (hh !== 0 || mm !== 0) ? `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")} ` : "";
+                const timeStr = (hh !== 0 || mm !== 0) ? `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}` : "";
                 return (
-                  <div key={j} title={`${timeStr}${ev.name}（${ev.label}）`} style={{
-                    fontSize: 10, fontWeight: 700, color: "#fff",
-                    background: ev.color, borderRadius: 3, padding: "2px 5px",
-                    marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>{timeStr}{ev.name}</div>
+                  <li key={j} className="flex items-center gap-3 px-4 py-3">
+                    <span className={`w-2.5 h-2.5 flex-shrink-0 rounded-full ${ev.flow.startsWith("chuto") ? "bg-[var(--color-primary)]" : ev.flow.startsWith("shinsotsu") ? "bg-[var(--color-secondary)]" : "bg-[var(--color-tertiary-container)]"}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[var(--color-on-surface)] truncate">{ev.name}</p>
+                      <p className="text-xs text-[var(--color-on-surface-variant)]">{ev.label}{timeStr && `　${timeStr}`}</p>
+                    </div>
+                  </li>
                 );
               })}
-            </div>
-          );
-        })}
-      </div>
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -730,45 +835,33 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{
-      fontFamily: "'Hiragino Sans', 'Noto Sans JP', sans-serif",
-      background: "#f2f2f0", minHeight: "100vh",
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
-      <form onSubmit={handleSubmit} style={{
-        background: "#fff", borderRadius: 16, padding: "40px 36px", width: 360, maxWidth: "90vw",
-        boxShadow: "0 8px 40px #0000000f", textAlign: "center",
-        animation: shake ? "shake 0.4s ease" : "none",
-      }}>
-        <div style={{ fontWeight: 800, fontSize: 22, color: "#1a1a1a", marginBottom: 6 }}>採用管理</div>
-        <div style={{ fontSize: 13, color: "#999", marginBottom: 28 }}>パスワードを入力してください</div>
+    <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center px-4">
+      <form
+        onSubmit={handleSubmit}
+        className={`bg-white rounded-3xl px-8 py-10 w-full max-w-sm shadow-xl text-center ${shake ? "animate-[shake_0.4s_ease]" : ""}`}
+      >
+        <h1 className="font-headline font-extrabold text-2xl text-[var(--color-primary)] mb-1">採用管理</h1>
+        <p className="text-sm text-[var(--color-on-surface-variant)] mb-8">パスワードを入力してください</p>
         <input
           type="password"
           value={pw}
           onChange={e => { setPw(e.target.value); setError(false); }}
           placeholder="パスワード"
           autoFocus
-          style={{
-            width: "100%", padding: "12px 16px", borderRadius: 8, fontSize: 15,
-            border: `1.5px solid ${error ? "#e53e3e" : "#ddd"}`,
-            boxSizing: "border-box", outline: "none", marginBottom: 8,
-            transition: "border-color 0.2s",
-          }}
+          className={`w-full px-4 py-3 rounded-xl border text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-colors ${error ? "border-[var(--color-error)]" : "border-[var(--color-outline-variant)]"}`}
         />
-        {error && <div style={{ fontSize: 12, color: "#e53e3e", marginBottom: 8, fontWeight: 600 }}>パスワードが正しくありません</div>}
-        <button type="submit" style={{
-          width: "100%", padding: "12px 0", borderRadius: 8, border: "none",
-          background: "#1a1a1a", color: "#fff", fontWeight: 700, fontSize: 15,
-          cursor: "pointer", marginTop: 8,
-        }}>ログイン</button>
+        {error && <p className="text-xs text-[var(--color-error)] font-semibold mb-2">パスワードが正しくありません</p>}
+        <button type="submit" className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white font-bold text-sm mt-2 hover:opacity-90 transition-opacity">
+          ログイン
+        </button>
       </form>
       <style>{`
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-8px); }
-          40% { transform: translateX(8px); }
-          60% { transform: translateX(-6px); }
-          80% { transform: translateX(6px); }
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-8px)}
+          40%{transform:translateX(8px)}
+          60%{transform:translateX(-6px)}
+          80%{transform:translateX(6px)}
         }
       `}</style>
     </div>
@@ -875,6 +968,7 @@ export default function App() {
       else alert("メモの保存に失敗しました");
     } catch { alert("通信エラーが発生しました"); }
   };
+
   const editMember = async (id, member) => {
     try {
       const res = await apiPost({ action: "update", id, member });
@@ -898,93 +992,252 @@ export default function App() {
     try {
       const res = await apiPost({ action: "update", id: form.id, name: form.name, flow: form.flow, source: form.source, member: form.member });
       if (res.ok) {
-        setApplicants(prev => prev.map(a => a.id === form.id ? { ...a, name: form.name, flow: form.flow, source: form.source, member: form.member } : a));
+        setApplicants(prev => prev.map(a => a.id === form.id ? { ...a, ...form } : a));
         setShowEdit(null);
       } else alert("更新に失敗しました");
     } catch { alert("通信エラーが発生しました"); }
     setSaving(false);
   };
 
+  // フィルタリング
   const filtered = applicants.filter(a => {
-    if (filter !== "all" && a.flow !== filter) return false;
+    if (filter === "chuto" && !a.flow.startsWith("chuto")) return false;
+    if (filter === "shinsotsu" && !a.flow.startsWith("shinsotsu")) return false;
+    if (filter === "intern" && !a.flow.startsWith("intern")) return false;
     if (search && !a.name.includes(search)) return false;
     return true;
   });
   const active = filtered.filter(a => !a.rejected && FLOWS[a.flow]?.[a.stepIdx]?.id !== "done");
   const done = filtered.filter(a => a.rejected || FLOWS[a.flow]?.[a.stepIdx]?.id === "done");
 
-  return (
-    <div style={{ fontFamily: "'Hiragino Sans', 'Noto Sans JP', sans-serif", background: "#f2f2f0", minHeight: "100vh", paddingBottom: 60 }}>
-      <div style={{ background: "#1a1a1a", color: "#fff", padding: "16px 24px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em" }}>採用管理</div>
-        <div style={{ display: "flex", gap: 2, background: "#2a2a2a", borderRadius: 8, padding: 3 }}>
-          {[["list", "リスト"], ["calendar", "カレンダー"]].map(([key, label]) => (
-            <button key={key} onClick={() => setActiveTab(key)} style={{
-              padding: "5px 14px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 700,
-              background: activeTab === key ? "#fff" : "transparent",
-              color: activeTab === key ? "#1a1a1a" : "#aaa",
-              cursor: "pointer",
-            }}>{label}</button>
-          ))}
-        </div>
-        <div style={{ flex: 1 }} />
-        {fetchState === "loading" && <span style={{ fontSize: 12, color: "#aaa" }}>読込中…</span>}
-        {fetchState === "error" && <span style={{ fontSize: 12, color: "#f87171" }}>⚠ スプシ接続エラー — GAS URLを確認してください</span>}
-        <span style={{ fontSize: 13, color: "#aaa" }}>対応中 {active.length}名</span>
-        <button onClick={load} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #444", background: "transparent", color: "#ccc", fontSize: 12, cursor: "pointer" }}>更新</button>
-        <button onClick={() => setShowAdd(true)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: "#fff", color: "#1a1a1a", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ 追加</button>
-      </div>
+  // アクティブ応募者を3セクションに分類
+  const actionApps = active.filter(a => getStepCategory(a) === "action");
+  const awaitingApps = active.filter(a => getStepCategory(a) === "awaiting");
+  const scheduledApps = active.filter(a => getStepCategory(a) === "scheduled");
 
+  return (
+    <div className="min-h-screen bg-[var(--color-background)] pb-24 md:pb-0">
+      {/* ヘッダー */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-[var(--color-outline-variant)] sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h1 className="font-headline font-extrabold text-xl text-[var(--color-primary)] tracking-tight">
+              採用管理
+            </h1>
+          </div>
+          {/* デスクトップナビ */}
+          <nav className="hidden md:flex gap-1">
+            {[["list", "group", "応募者一覧"], ["calendar", "calendar_month", "カレンダー"]].map(([key, icon, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === key ? "bg-[var(--color-primary-fixed)] text-[var(--color-primary)] font-bold" : "text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"}`}
+              >
+                <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </nav>
+          <div className="flex items-center gap-3">
+            {fetchState === "loading" && (
+              <span className="text-xs text-[var(--color-outline)]">読込中…</span>
+            )}
+            {fetchState === "error" && (
+              <span className="text-xs text-[var(--color-error)] font-medium">⚠ 接続エラー</span>
+            )}
+            <button
+              onClick={load}
+              className="p-2 rounded-xl text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors"
+              title="更新"
+            >
+              <span className="material-symbols-outlined text-[20px]">refresh</span>
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span className="hidden sm:inline">応募者追加</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* カレンダービュー */}
       {activeTab === "calendar" && <CalendarView applicants={applicants} />}
 
-      {activeTab === "list" && <div style={{ maxWidth: 820, margin: "0 auto", padding: "20px 16px 0" }}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-          <input data-1p-ignore value={search} onChange={e => setSearch(e.target.value)} placeholder="氏名で検索…"
-            style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 13, width: 160 }} />
-          <button onClick={() => setFilter("all")} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid #ddd", fontSize: 12,
-            background: filter === "all" ? "#1a1a1a" : "#fff", color: filter === "all" ? "#fff" : "#555", cursor: "pointer", fontWeight: 600,
-          }}>すべて</button>
-          {Object.entries(FLOW_LABELS).map(([k, v]) => (
-            <button key={k} onClick={() => setFilter(k)} style={{
-              padding: "6px 12px", borderRadius: 20, fontSize: 12,
-              border: `1px solid ${FLOW_COLORS[k]}50`,
-              background: filter === k ? FLOW_COLORS[k] : FLOW_COLORS[k] + "12",
-              color: filter === k ? "#fff" : FLOW_COLORS[k],
-              cursor: "pointer", fontWeight: 600,
-            }}>{v}</button>
-          ))}
-        </div>
-
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 10, letterSpacing: "0.04em" }}>対応中 ({active.length})</div>
-        {active.length === 0 && fetchState !== "loading" && (
-          <div style={{ color: "#bbb", fontSize: 14, padding: "20px 0" }}>対応中の応募者はいません</div>
-        )}
-        {active.map(app => (
-          <Card key={app.id} app={app}
-            onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject} onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
-            onEdit={(a) => setShowEdit(a)}
-            expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
-            loading={loadingId === app.id} />
-        ))}
-
-        {done.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <button onClick={() => setShowDone(v => !v)} style={{
-              fontSize: 12, fontWeight: 700, color: "#aaa", background: "none", border: "none",
-              cursor: "pointer", letterSpacing: "0.04em", padding: 0, marginBottom: 10,
-            }}>{showDone ? "▾" : "▸"} 完了・終了 ({done.length})</button>
-            {showDone && done.map(app => (
-              <Card key={app.id} app={app}
-                onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject} onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
-                onEdit={(a) => setShowEdit(a)}
-                expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
-                loading={loadingId === app.id} />
-            ))}
+      {/* リストビュー */}
+      {activeTab === "list" && (
+        <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+          {/* ページタイトル + フィルター */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div>
+              <h2 className="font-headline font-extrabold text-3xl text-[var(--color-on-surface)] mb-1">応募者一覧</h2>
+              <p className="text-sm text-[var(--color-on-surface-variant)]">
+                現在進行中の選考：{active.length}件
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 w-full md:w-auto">
+              {/* タブフィルター */}
+              <div className="bg-[var(--color-surface-container-high)] p-1 rounded-full flex gap-1 self-start">
+                {FILTER_TABS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key)}
+                    className={`px-5 py-1.5 rounded-full text-sm font-semibold transition-all ${filter === key ? "bg-[var(--color-primary-fixed)] text-[var(--color-primary)] shadow-sm font-bold" : "text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-highest)]"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* 検索 */}
+              <div className="relative w-full md:w-72">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] text-[20px]">search</span>
+                <input
+                  data-1p-ignore
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="名前で検索..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--color-surface-container-low)] border-none rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
           </div>
-        )}
-      </div>}
 
+          {/* 3セクション */}
+          {active.length === 0 && fetchState !== "loading" && (
+            <div className="text-[var(--color-outline)] text-sm py-8 text-center">対応中の応募者はいません</div>
+          )}
+
+          {/* 要対応 */}
+          {actionApps.length > 0 && (
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-5">
+                <span className="material-symbols-outlined text-tertiary-container text-xl">priority_high</span>
+                <h3 className="font-headline font-bold text-lg text-(--color-on-surface)">
+                  要対応
+                  <span className="text-sm font-normal text-on-surface-variant ml-2">{actionApps.length}件</span>
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                {actionApps.map(app => (
+                  <Card
+                    key={app.id} app={app}
+                    onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject}
+                    onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
+                    onEdit={(a) => setShowEdit(a)}
+                    expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
+                    loading={loadingId === app.id}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 候補者返信待ち */}
+          {awaitingApps.length > 0 && (
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-5">
+                <span className="material-symbols-outlined text-outline text-xl">hourglass_empty</span>
+                <h3 className="font-headline font-bold text-lg text-(--color-on-surface)">
+                  候補者返信待ち
+                  <span className="text-sm font-normal text-on-surface-variant ml-2">{awaitingApps.length}件</span>
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                {awaitingApps.map(app => (
+                  <Card
+                    key={app.id} app={app}
+                    onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject}
+                    onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
+                    onEdit={(a) => setShowEdit(a)}
+                    expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
+                    loading={loadingId === app.id}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 日程確定済み */}
+          {scheduledApps.length > 0 && (
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-5">
+                <span className="material-symbols-outlined text-primary text-xl">calendar_today</span>
+                <h3 className="font-headline font-bold text-lg text-(--color-on-surface)">
+                  日程確定済み
+                  <span className="text-sm font-normal text-on-surface-variant ml-2">{scheduledApps.length}件</span>
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                {scheduledApps.map(app => (
+                  <Card
+                    key={app.id} app={app}
+                    onAdvance={advance} onStepBack={stepBack} onReject={reject} onUnreject={unreject}
+                    onDelete={deleteApp} onEditNote={editNote} onEditMember={editMember}
+                    onEdit={(a) => setShowEdit(a)}
+                    expanded={expanded === app.id} onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
+                    loading={loadingId === app.id}
+                    hideStalled
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 完了・終了 */}
+          {done.length > 0 && (
+            <div className="mt-8">
+              <button
+                onClick={() => setShowDone(v => !v)}
+                className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider mb-4 bg-transparent border-0 cursor-pointer p-0"
+              >
+                <span className="material-symbols-outlined text-[16px]">{showDone ? "expand_more" : "chevron_right"}</span>
+                完了・終了 ({done.length})
+              </button>
+              {showDone && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                  {done.map(app => (
+                    <Card
+                      key={app.id}
+                      app={app}
+                      onAdvance={advance}
+                      onStepBack={stepBack}
+                      onReject={reject}
+                      onUnreject={unreject}
+                      onDelete={deleteApp}
+                      onEditNote={editNote}
+                      onEditMember={editMember}
+                      onEdit={(a) => setShowEdit(a)}
+                      expanded={expanded === app.id}
+                      onToggle={() => setExpanded(expanded === app.id ? null : app.id)}
+                      loading={loadingId === app.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* モバイルボトムナビ */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-40 flex justify-around items-center pt-2 pb-6 px-4 bg-white/90 backdrop-blur-xl border-t border-[var(--color-outline-variant)]">
+        {[["list", "group", "応募者一覧"], ["calendar", "calendar_month", "カレンダー"]].map(([key, icon, label]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex flex-col items-center justify-center px-6 py-1.5 rounded-full transition-all ${activeTab === key ? "bg-[var(--color-primary-fixed)] text-[var(--color-primary)]" : "text-[var(--color-on-surface-variant)]"}`}
+          >
+            <span className="material-symbols-outlined text-[24px]" style={activeTab === key ? { fontVariationSettings: "'FILL' 1" } : {}}>
+              {icon}
+            </span>
+            <span className="text-[11px] font-medium mt-0.5">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* モーダル */}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onAdd={addApp} saving={saving} />}
       {showEdit && <EditModal app={showEdit} onClose={() => setShowEdit(null)} onSave={editApp} saving={saving} />}
     </div>
