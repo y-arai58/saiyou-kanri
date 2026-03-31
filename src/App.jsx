@@ -6,8 +6,7 @@ const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD;
 const FORMS = {
   chuto: { label: "中途用フォーム", url: "https://forms.gle/2hCrxjyyHc1D3n9h9" },
   shinsotsu: { label: "新卒用フォーム", url: "https://forms.gle/hXtBrh55Y3b3KxvW6" },
-  interneng: { label: "長期インターン用フォーム（エンジニア）", url: "https://docs.google.com/forms/d/e/1FAIpQLScfBDAJ6RpE5I5bVVHC072Ri38Y2TFMs0dSeStLvTp7ApscXQ/viewform" },
-  internmar: { label: "長期インターン用フォーム（広報・マーケター）", url: "https://docs.google.com/forms/d/e/1FAIpQLSdY7jLUrvZkDy89Zb9tPE0zy1JnKzF8hMf00I4wtdmL333igQ/viewform" },
+  interneng: { label: "長期インターン用フォーム（エンジニア・デザイナー）", url: "https://docs.google.com/forms/d/e/1FAIpQLScfBDAJ6RpE5I5bVVHC072Ri38Y2TFMs0dSeStLvTp7ApscXQ/viewform" },
 };
 
 const CH = {
@@ -20,143 +19,99 @@ const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷", "伊藤"];
 //  フロー定義
 // =====================================================
 const FLOWS = {
-  //中途: 会社説明
-  chuto_kaisetsu: [
-    { id: "entry", label: "エントリー受付", action: "中途用フォームを送付＋日程調整を行う", form: "chuto" },
-    { id: "schedule", label: "フォーム入力待ち&日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程", ch: "form_entry" },
-    { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
-    { id: "done", label: "会社説明完了", action: null },
-  ],
-  //中途: カジュアル面談
+  // 中途: カジュアル面談
   chuto_casual: [
-    { id: "entry", label: "エントリー受付", action: "中途用フォームを送付＋カジュアル面談の日程を調整する", form: "chuto" },
-    { id: "schedule", label: "フォーム入力待ち&日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程", ch: "form_entry" },
-    { id: "casual", label: "面談(日程確定済み)", action: "面接希望の場合は再エントリーを促す" },
+    { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
+    { id: "schedule", label: "日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
+    { id: "casual", label: "面談（日程確定済み）", action: "カジュアル面談を実施する" },
     { id: "done", label: "面談完了", action: null },
   ],
-  //新卒: 会社説明
+  // 中途: 採用面接
+  chuto_mensetsu: [
+    { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
+    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
+    { id: "shorui_pass", label: "書類通過・日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
+    { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
+    { id: "done", label: "採用決定", action: null },
+  ],
+  // 新卒: 会社説明
   shinsotsu_kaisetsu: [
-    { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付＋会社説明の日程を調整する", form: "shinsotsu" },
-    { id: "schedule", label: "フォーム入力待ち＆日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡。フォーム入力内容はchに通知が来るので確認し、ステータスを更新", dateInput: true, dateField: "scheduledDate", dateLabel: "日程", ch: "form_entry" },
+    { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容・希望日程を確認する", ch: "form_entry" },
+    { id: "schedule", label: "日程確定・連絡", action: "フォームの希望日程から担当者と日程を決定し、確定日程を応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
     { id: "done", label: "会社説明完了", action: null },
   ],
-  //新卒: 本選考
+  // 新卒: 本選考
   shinsotsu_honsenkou: [
-    { id: "entry", label: "エントリー受付", action: "新卒用フォームを送付する", form: "shinsotsu" },
-    { id: "entry_done", label: "フォーム入力待ち", action: "入力されたらchに通知が来るので確認し、ステータスを更新", ch: "form_entry" },
+    { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "書類通過・日程調整中", action: "通過連絡＋1次面接の日程調整をメールで送付する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
+    { id: "shorui_pass", label: "書類通過・1次日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
     { id: "interview1", label: "1次面接（日程確定済み）", action: "面接を実施する" },
     { id: "interview1_judge", label: "1次面接実施済み", action: "1次選考の合否を判断する" },
-    { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
+    { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
     { id: "interview2", label: "2次面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview2_judge", label: "2次面接実施済み", action: "2次選考の合否を判断する" },
+    { id: "interview2_judge", label: "2次面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
-  // 長期インターン：採用サイト経由（エンジニア・デザイナー）
+  // 長期インターン：採用サイト経由（エンジニア）
   intern_site_eng: [
-    { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（エンジニア）を送付する", form: "interneng" },
+    { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "schedule", label: "面接日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済", action: "合否を判断する" },
-    { id: "done", label: "採用決定", action: null },
-  ],
-  // 長期インターン：採用サイト経由（広報・マーケター）
-  intern_site_mar: [
-    { id: "entry", label: "エントリー受付", action: "長期インターン用フォーム（広報・マーケター）を送付する", form: "internmar" },
-    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "面接の日程を確定する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
-    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済", action: "合否を判断する" },
+    { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
   // 長期インターン：ゼロワン経由（エンジニア）
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済", action: "合否を判断する" },
+    { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
-  ],
-  // 長期インターン：ゼロワン経由（広報・マーケター）
-  intern_zero_mar: [
-    { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
-    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済", action: "合否を判断する" },
-    { id: "done", label: "採用決定", action: null },
-  ],
-  // 長期インターン：採用サイト経由・会社説明（エンジニア）
-  intern_site_kaisetsu_eng: [
-    { id: "entry", label: "エントリー受付", action: "会社説明の日程を調整する" },
-    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
-    { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
-    { id: "done", label: "会社説明完了", action: null },
-  ],
-  // 長期インターン：採用サイト経由・会社説明（広報・マーケター）
-  intern_site_kaisetsu_mar: [
-    { id: "entry", label: "エントリー受付", action: "会社説明の日程を調整する" },
-    { id: "schedule", label: "日程調整中", action: "メールで日程調整し、確定次第で担当者へ連絡", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
-    { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
-    { id: "done", label: "会社説明完了", action: null },
   ],
 };
 
 const FLOW_LABELS = {
-  chuto_kaisetsu: "中途｜会社説明",
   chuto_casual: "中途｜カジュアル面談",
+  chuto_mensetsu: "中途｜採用面接",
   shinsotsu_kaisetsu: "新卒｜会社説明",
   shinsotsu_honsenkou: "新卒｜本選考",
-  intern_site_eng: "長期インターン｜採用サイト・エンジニア",
-  intern_site_mar: "長期インターン｜採用サイト・マーケ",
-  intern_zero_eng: "長期インターン｜ゼロワン・エンジニア",
-  intern_zero_mar: "長期インターン｜ゼロワン・マーケ",
-  intern_site_kaisetsu_eng: "長期インターン｜採用サイト・会社説明・エンジニア",
-  intern_site_kaisetsu_mar: "長期インターン｜採用サイト・会社説明・マーケ",
+  intern_site_eng: "長期インターン｜採用サイト",
+  intern_zero_eng: "長期インターン｜ゼロワン",
 };
 
 const FLOW_COLORS = {
-  chuto_kaisetsu: "#c0392b",
   chuto_casual: "#e05a3a",
+  chuto_mensetsu: "#c0392b",
   shinsotsu_kaisetsu: "#1a56db",
   shinsotsu_honsenkou: "#2d6be4",
   intern_site_eng: "#6d28d9",
-  intern_site_mar: "#b45309",
   intern_zero_eng: "#7c3aed",
-  intern_zero_mar: "#d4830a",
-  intern_site_kaisetsu_eng: "#0d9488",
-  intern_site_kaisetsu_mar: "#059669",
 };
 
 // 追加モーダル用：グループ化した選択肢（応募経路はインターン選択時に別途切り替え）
 const FLOW_OPTIONS = [
-  { group: "中途", flows: ["chuto_kaisetsu", "chuto_casual"] },
+  { group: "中途", flows: ["chuto_casual", "chuto_mensetsu"] },
   { group: "新卒", flows: ["shinsotsu_kaisetsu", "shinsotsu_honsenkou"] },
-  { group: "長期インターン", flows: ["intern_eng", "intern_mar"] },
+  { group: "長期インターン", flows: ["intern_eng"] },
 ];
 
 const FLOW_OPTION_LABELS = {
   ...FLOW_LABELS,
-  intern_eng: "長期インターン｜エンジニア",
-  intern_mar: "長期インターン｜マーケ",
+  intern_eng: "長期インターン",
 };
 
-// baseFlow + internRoute + siteSubType → 実際のフローキー・応募経路
-function resolveFlow(baseFlow, internRoute, siteSubType) {
+// baseFlow + internRoute → 実際のフローキー・応募経路
+function resolveFlow(baseFlow, internRoute) {
   if (baseFlow === "intern_eng") {
-    if (internRoute === "ゼロワン") return "intern_zero_eng";
-    return siteSubType === "会社説明" ? "intern_site_kaisetsu_eng" : "intern_site_eng";
-  }
-  if (baseFlow === "intern_mar") {
-    if (internRoute === "ゼロワン") return "intern_zero_mar";
-    return siteSubType === "会社説明" ? "intern_site_kaisetsu_mar" : "intern_site_mar";
+    return internRoute === "ゼロワン" ? "intern_zero_eng" : "intern_site_eng";
   }
   return baseFlow;
 }
 function resolveSource(baseFlow, internRoute) {
-  return (baseFlow === "intern_eng" || baseFlow === "intern_mar") ? internRoute : "採用サイト";
+  return baseFlow === "intern_eng" ? internRoute : "採用サイト";
 }
 
 // =====================================================
@@ -376,7 +331,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEd
             </div>
             {!isDone && step?.action && (
               <div style={{ flex: 2, minWidth: 200, background: c + "0d", border: `1px solid ${c}30`, borderRadius: 8, padding: "10px 14px" }}>
-                <div style={{ fontSize: 11, color: c, fontWeight: 700, marginBottom: 4 }}>次にやること</div>
+                <div style={{ fontSize: 11, color: c, fontWeight: 700, marginBottom: 4 }}>担当者アクション</div>
                 <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a1a" }}>{step.action}</div>
                 {step.form && (
                   <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
@@ -519,15 +474,13 @@ function AddModal({ onClose, onAdd, saving }) {
   const [name, setName] = useState("");
   const [baseFlow, setBaseFlow] = useState("shinsotsu_honsenkou");
   const [internRoute, setInternRoute] = useState("採用サイト");
-  const [siteSubType, setSiteSubType] = useState("インターン応募");
   const [member, setMember] = useState(MEMBERS[0]);
   const [note, setNote] = useState("");
-  const isIntern = baseFlow === "intern_eng" || baseFlow === "intern_mar";
-  const isSite = isIntern && internRoute === "採用サイト";
+  const isIntern = baseFlow === "intern_eng";
   const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
   const handleAdd = () => {
     if (!name) return;
-    onAdd({ name, flow: resolveFlow(baseFlow, internRoute, siteSubType), source: resolveSource(baseFlow, internRoute), member, note });
+    onAdd({ name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member, note });
   };
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
@@ -569,21 +522,6 @@ function AddModal({ onClose, onAdd, saving }) {
             </div>
           </div>
         )}
-        {isSite && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>フロー種別</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["インターン応募", "会社説明"].map(t => (
-                <button key={t} onClick={() => setSiteSubType(t)} style={{
-                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  border: siteSubType === t ? "2px solid #0d9488" : "1px solid #ddd",
-                  background: siteSubType === t ? "#0d9488" : "#fff",
-                  color: siteSubType === t ? "#fff" : "#555",
-                }}>{t}</button>
-              ))}
-            </div>
-          </div>
-        )}
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 4 }}>担当者</label>
           <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} style={s}>
@@ -615,22 +553,18 @@ function EditModal({ app, onClose, onSave, saving }) {
   // baseFlow を逆算する
   const inferBase = (flow) => {
     if (flow.startsWith("intern") && flow.includes("eng")) return "intern_eng";
-    if (flow.startsWith("intern") && flow.includes("mar")) return "intern_mar";
     return flow;
   };
   const inferRoute = (flow) => flow.includes("zero") ? "ゼロワン" : "採用サイト";
-  const inferSubType = (flow) => flow.includes("kaisetsu") ? "会社説明" : "インターン応募";
 
   const [baseFlow, setBaseFlow] = useState(inferBase(app.flow));
   const [internRoute, setInternRoute] = useState(inferRoute(app.flow));
-  const [siteSubType, setSiteSubType] = useState(inferSubType(app.flow));
   const [member, setMember] = useState(app.member);
-  const isIntern = baseFlow === "intern_eng" || baseFlow === "intern_mar";
-  const isSite = isIntern && internRoute === "採用サイト";
+  const isIntern = baseFlow === "intern_eng";
   const s = { width: "100%", padding: "9px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14, boxSizing: "border-box" };
   const handleSave = () => {
     if (!name) return;
-    const newFlow = resolveFlow(baseFlow, internRoute, siteSubType);
+    const newFlow = resolveFlow(baseFlow, internRoute);
     const newSource = resolveSource(baseFlow, internRoute);
     onSave({ id: app.id, name, flow: newFlow, source: newSource, member });
   };
@@ -670,21 +604,6 @@ function EditModal({ app, onClose, onSave, saving }) {
                   background: internRoute === r ? "#1a1a1a" : "#fff",
                   color: internRoute === r ? "#fff" : "#555",
                 }}>{r}</button>
-              ))}
-            </div>
-          </div>
-        )}
-        {isSite && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: "#666", fontWeight: 700, display: "block", marginBottom: 6 }}>フロー種別</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["インターン応募", "会社説明"].map(t => (
-                <button key={t} onClick={() => setSiteSubType(t)} style={{
-                  flex: 1, padding: "8px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  border: siteSubType === t ? "2px solid #0d9488" : "1px solid #ddd",
-                  background: siteSubType === t ? "#0d9488" : "#fff",
-                  color: siteSubType === t ? "#fff" : "#555",
-                }}>{t}</button>
               ))}
             </div>
           </div>
