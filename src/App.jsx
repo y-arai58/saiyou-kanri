@@ -18,75 +18,82 @@ const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷", "伊藤"];
 const FLOWS = {
   chuto_casual: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
-    { id: "schedule", label: "日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
-    { id: "casual", label: "面談（日程確定済み）", action: "カジュアル面談を実施する" },
-    { id: "done", label: "面談完了", action: null },
+    { id: "schedule", label: "日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
+    { id: "schedule", label: "日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
+    { id: "casual", label: "面談", action: "カジュアル面談を実施する" },
+    { id: "done", label: "完了", action: null },
   ],
   chuto_mensetsu: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
-    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "書類通過・日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
-    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
+    { id: "shorui", label: "書類選考", action: "フォーム内容をもとに書類選考する" },
+    { id: "shorui_pass", label: "日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
+    { id: "shorui_pass", label: "日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "interview_scheduled", label: "面接", action: "面接を実施する" },
+    { id: "interview", label: "面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
   shinsotsu_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容・希望日程を確認する", ch: "form_entry" },
-    { id: "schedule", label: "日程確定・連絡", action: "フォームの希望日程から担当者と日程を決定し、確定日程を応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
-    { id: "kaisetsu", label: "会社説明（日程確定済み）", action: "会社説明を実施する" },
-    { id: "done", label: "会社説明完了", action: null },
+    { id: "schedule", label: "日程調整", action: "フォームの希望日程から担当者と日程を決定" },
+    { id: "schedule", label: "日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
+    { id: "kaisetsu", label: "会社説明", action: "会社説明を実施する" },
+    { id: "done", label: "完了", action: null },
   ],
   shinsotsu_honsenkou: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
-    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "書類通過・1次日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
-    { id: "interview1", label: "1次面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview1_judge", label: "1次面接実施済み", action: "1次選考の合否を判断する" },
-    { id: "interview2_sched", label: "2次日程調整中", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
-    { id: "interview2", label: "2次面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview2_judge", label: "2次面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
+    { id: "shorui", label: "書類選考", action: "フォーム内容をもとに書類選考する" },
+    { id: "shorui_pass", label: "1次日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
+    { id: "shorui_pass", label: "1次日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
+    { id: "interview1", label: "1次面接", action: "面接を実施する" },
+    { id: "interview1_judge", label: "1次面接合否", action: "1次選考の合否を判断する" },
+    { id: "interview2_sched", label: "2次日程調整", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有" },
+    { id: "interview2_sched", label: "2次日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
+    { id: "interview2", label: "2次面接", action: "面接を実施する" },
+    { id: "interview2_judge", label: "2次面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
-    { id: "shorui", label: "書類選考中", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整中", action: "メールで希望日程を確認し、担当者と日程を決定。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
-    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
+    { id: "shorui", label: "書類選考", action: "フォーム内容をもとに書類選考する" },
+    { id: "schedule", label: "面接日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
+    { id: "schedule", label: "面接日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "interview_scheduled", label: "面接", action: "面接を実施する" },
+    { id: "interview", label: "面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡。確定日程を応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
-    { id: "interview_scheduled", label: "面接（日程確定済み）", action: "面接を実施する" },
-    { id: "interview", label: "面接実施済み", action: "合否を判断し、応募者へ結果を連絡する" },
+    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡" },
+    { id: "schedule", label: "面接日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "interview_scheduled", label: "面接", action: "面接を実施する" },
+    { id: "interview", label: "面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
 };
 
 const FLOW_LABELS = {
-  chuto_casual: "中途｜カジュアル",
+  chuto_casual: "中途｜カジュアル面談",
   chuto_mensetsu: "中途｜採用面接",
   shinsotsu_kaisetsu: "新卒｜会社説明",
   shinsotsu_honsenkou: "新卒｜本選考",
-  intern_site_eng: "インターン｜採用サイト",
-  intern_zero_eng: "インターン｜ゼロワン",
+  intern_site_eng: "長期インターン｜採用サイト",
+  intern_zero_eng: "長期インターン｜ゼロワン",
 };
 
 // 日程確定済み（当日まで待機）のステップID
 const SCHEDULED_STEP_IDS = new Set([
-  "interview_scheduled", // 面接（日程確定済み）
-  "casual",              // 面談（日程確定済み）
-  "kaisetsu",            // 会社説明（日程確定済み）
-  "interview1",          // 1次面接（日程確定済み）
-  "interview2",          // 2次面接（日程確定済み）
+  "interview_scheduled", // 面接
+  "casual",              // 面談
+  "kaisetsu",            // 会社説明
+  "interview1",          // 1次面接
+  "interview2",          // 2次面接
 ]);
 
 // 候補者返信待ちのステップID
 const AWAITING_STEP_IDS = new Set([
-  "schedule",            // 日程調整中
-  "shorui_pass",         // 書類通過・日程調整中
-  "interview2_sched",    // 2次日程調整中
+  "schedule",            // 日程調整
+  "shorui_pass",         // 日程調整（書類通過後）
+  "interview2_sched",    // 2次日程調整
 ]);
 
 // 応募者のステップカテゴリを返す
@@ -326,7 +333,7 @@ function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEd
           {/* ステータス + アクション */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-white border border-[var(--color-outline-variant)] rounded-xl px-4 py-3">
-              <div className="text-[10px] text-[var(--color-outline)] font-bold uppercase tracking-wider mb-1">現在のステータス</div>
+              <div className="text-[10px] text-[var(--color-outline)] font-bold uppercase tracking-wider mb-1">現在のステップ</div>
               <div className="font-bold text-sm text-[var(--color-on-surface)]">
                 {app.rejected ? "不合格・終了" : step?.label}
               </div>
