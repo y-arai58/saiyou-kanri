@@ -245,7 +245,7 @@ function NoteEditor({ note, onSave }) {
       ) : (
         <div
           onClick={() => setEditing(true)}
-          className="text-sm text-[var(--color-on-surface-variant)] bg-white border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 min-h-[34px] cursor-text"
+          className="text-sm text-[var(--color-on-surface-variant)] bg-white border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 min-h-[34px] cursor-text whitespace-pre-wrap"
         >
           {val || <span className="text-[var(--color-outline)]">クリックしてメモを追加…</span>}
         </div>
@@ -367,10 +367,14 @@ function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEd
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-outline)]">
             <span>応募経路: {app.source}</span>
             <span>応募日: {formatDate(app.created)}</span>
-            {getFlowDateFields(app.flow).map(({ field, label }) => app[field] && (
-              <span key={field} className="text-[var(--color-secondary)] font-bold">{label}: {formatDateTime(app[field])}</span>
-            ))}
           </div>
+          {getFlowDateFields(app.flow).some(({ field }) => app[field]) && (
+            <div className="flex flex-col gap-y-1 text-xs">
+              {getFlowDateFields(app.flow).map(({ field, label }) => app[field] && (
+                <span key={field} className="text-secondary font-bold">{label}: {formatDateTime(app[field])}</span>
+              ))}
+            </div>
+          )}
 
           {/* 担当者変更 */}
           <div className="flex items-center gap-2">
@@ -579,11 +583,24 @@ function EditModal({ app, onClose, onSave, saving }) {
   const [baseFlow, setBaseFlow] = useState(inferBase(app.flow));
   const [internRoute, setInternRoute] = useState(inferRoute(app.flow));
   const [member, setMember] = useState(app.member);
+  const [stepIdx, setStepIdx] = useState(app.stepIdx ?? 0);
   const isIntern = baseFlow === "intern_eng";
+
+  const currentFlow = resolveFlow(baseFlow, internRoute);
+  const flowSteps = FLOWS[currentFlow] ?? [];
+
+  const handleFlowChange = (newBase) => {
+    setBaseFlow(newBase);
+    setStepIdx(0);
+  };
+  const handleRouteChange = (newRoute) => {
+    setInternRoute(newRoute);
+    setStepIdx(0);
+  };
 
   const handleSave = () => {
     if (!name) return;
-    onSave({ id: app.id, name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member });
+    onSave({ id: app.id, name, flow: currentFlow, source: resolveSource(baseFlow, internRoute), member, stepIdx });
   };
 
   useEffect(() => {
@@ -605,7 +622,7 @@ function EditModal({ app, onClose, onSave, saving }) {
           </div>
           <div>
             <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">フロー</label>
-            <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} className={inputCls}>
+            <select data-1p-ignore value={baseFlow} onChange={e => handleFlowChange(e.target.value)} className={inputCls}>
               {FLOW_OPTIONS.map(({ group, flows }) => (
                 <optgroup key={group} label={group}>
                   {flows.map(k => <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>)}
@@ -620,13 +637,21 @@ function EditModal({ app, onClose, onSave, saving }) {
                 {["採用サイト", "ゼロワン"].map(r => (
                   <button
                     key={r}
-                    onClick={() => setInternRoute(r)}
+                    onClick={() => handleRouteChange(r)}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors ${internRoute === r ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]" : "bg-white text-[var(--color-on-surface-variant)] border-[var(--color-outline-variant)]"}`}
                   >{r}</button>
                 ))}
               </div>
             </div>
           )}
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">現在のステップ</label>
+            <select data-1p-ignore value={stepIdx} onChange={e => setStepIdx(Number(e.target.value))} className={inputCls}>
+              {flowSteps.map((s, i) => (
+                <option key={i} value={i}>{i + 1}. {s.label}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">担当者</label>
             <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} className={inputCls}>
@@ -996,7 +1021,7 @@ export default function App() {
   const editApp = async (form) => {
     setSaving(true);
     try {
-      const res = await apiPost({ action: "update", id: form.id, name: form.name, flow: form.flow, source: form.source, member: form.member });
+      const res = await apiPost({ action: "update", id: form.id, name: form.name, flow: form.flow, source: form.source, member: form.member, stepIdx: form.stepIdx });
       if (res.ok) {
         setApplicants(prev => prev.map(a => a.id === form.id ? { ...a, ...form } : a));
         setShowEdit(null);
