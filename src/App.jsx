@@ -18,36 +18,35 @@ const MEMBERS = ["新井", "中里", "早川", "クリス", "油谷", "伊藤"];
 const FLOWS = {
   chuto_casual: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
-    { id: "schedule", label: "日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
-    { id: "schedule", label: "日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
+    { id: "schedule_ask", label: "希望日程確認", action: "メールで希望日程を確認" },
+    { id: "schedule_fix", label: "日程調整", action: "担当者と日程を決定し、応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "casual", label: "面談", action: "カジュアル面談を実施する" },
     { id: "done", label: "完了", action: null },
   ],
   chuto_mensetsu: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
-    { id: "shorui_pass", label: "日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "shorui_pass_ask", label: "希望日程確認", action: "メールで希望日程を確認" },
+    { id: "shorui_pass_fix", label: "日程調整", action: "担当者と日程を決定し、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接", action: "面接を実施する" },
     { id: "interview", label: "面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
   shinsotsu_kaisetsu: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容・希望日程を確認する", ch: "form_entry" },
-    { id: "schedule", label: "日程調整", action: "フォームの希望日程から担当者と日程を決定" },
-    { id: "schedule", label: "日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
+    { id: "schedule_fix", label: "日程調整", action: "フォームの希望日程から担当者と日程を決定", dateInput: true, dateField: "scheduledDate", dateLabel: "日程" },
     { id: "kaisetsu", label: "会社説明", action: "会社説明を実施する" },
     { id: "done", label: "完了", action: null },
   ],
   shinsotsu_honsenkou: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考", action: "フォーム内容をもとに書類選考する" },
-    { id: "shorui_pass", label: "1次日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
-    { id: "shorui_pass", label: "1次日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
+    { id: "shorui_pass_ask", label: "1次希望日程確認", action: "メールで希望日程を確認" },
+    { id: "shorui_pass_fix", label: "1次日程調整", action: "担当者と日程を決定し、応募者へメールで連絡する", dateInput: true, dateField: "interview1Date", dateLabel: "1次面接日時" },
     { id: "interview1", label: "1次面接", action: "面接を実施する" },
     { id: "interview1_judge", label: "1次面接合否", action: "1次選考の合否を判断する" },
-    { id: "interview2_sched", label: "2次日程調整", action: "代表スケジュール確認 → 候補日5つ送付 ＋ 応募者情報を代表へ共有" },
-    { id: "interview2_sched", label: "2次日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
+    { id: "interview2_sched_ask", label: "2次希望日程確認", action: "代表スケジュールを確認し、候補日5つ送付" },
+    { id: "interview2_sched_fix", label: "2次日程調整", action: "日程が確定したら、応募者へメールで連絡 → カレンダーへ応募者情報を登録", dateInput: true, dateField: "interview2Date", dateLabel: "2次面接日時" },
     { id: "interview2", label: "2次面接", action: "面接を実施する" },
     { id: "interview2_judge", label: "2次面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
@@ -55,16 +54,16 @@ const FLOWS = {
   intern_site_eng: [
     { id: "entry", label: "エントリー受付", action: "Slack chでフォーム入力内容を確認する", ch: "form_entry" },
     { id: "shorui", label: "書類選考", action: "フォーム内容をもとに書類選考する" },
-    { id: "schedule", label: "面接日程調整", action: "メールで希望日程を確認し、担当者と日程を決定" },
-    { id: "schedule", label: "面接日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "schedule_ask", label: "希望日程確認", action: "メールで希望日程を確認" },
+    { id: "schedule_fix", label: "日程調整", action: "担当者と日程を決定し、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接", action: "面接を実施する" },
     { id: "interview", label: "面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
   ],
   intern_zero_eng: [
     { id: "shorui_pass", label: "書類選考通過", action: "面接の日程を調整する" },
-    { id: "schedule", label: "面接日程調整中", action: "確定次第で担当者へ連絡" },
-    { id: "schedule", label: "面接日程連絡", action: "日程が確定したら、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
+    { id: "schedule_ask", label: "希望日程確認", action: "メールで希望日程を確認" },
+    { id: "schedule_fix", label: "日程調整", action: "担当者と日程を決定し、応募者へメールで連絡する", dateInput: true, dateField: "interviewDate", dateLabel: "面接日時" },
     { id: "interview_scheduled", label: "面接", action: "面接を実施する" },
     { id: "interview", label: "面接合否", action: "合否を判断し、応募者へ結果を連絡する" },
     { id: "done", label: "採用決定", action: null },
@@ -91,9 +90,9 @@ const SCHEDULED_STEP_IDS = new Set([
 
 // 候補者返信待ちのステップID
 const AWAITING_STEP_IDS = new Set([
-  "schedule",            // 日程調整
-  "shorui_pass",         // 日程調整（書類通過後）
-  "interview2_sched",    // 2次日程調整
+  "schedule_ask",            // 希望日程確認
+  "shorui_pass_ask",         // 希望日程確認（書類通過後）
+  "interview2_sched_ask",    // 2次希望日程確認
 ]);
 
 // 応募者のステップカテゴリを返す
@@ -246,7 +245,7 @@ function NoteEditor({ note, onSave }) {
       ) : (
         <div
           onClick={() => setEditing(true)}
-          className="text-sm text-[var(--color-on-surface-variant)] bg-white border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 min-h-[34px] cursor-text"
+          className="text-sm text-[var(--color-on-surface-variant)] bg-white border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 min-h-[34px] cursor-text whitespace-pre-wrap"
         >
           {val || <span className="text-[var(--color-outline)]">クリックしてメモを追加…</span>}
         </div>
@@ -368,10 +367,14 @@ function Card({ app, onAdvance, onStepBack, onReject, onUnreject, onDelete, onEd
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-outline)]">
             <span>応募経路: {app.source}</span>
             <span>応募日: {formatDate(app.created)}</span>
-            {getFlowDateFields(app.flow).map(({ field, label }) => app[field] && (
-              <span key={field} className="text-[var(--color-secondary)] font-bold">{label}: {formatDateTime(app[field])}</span>
-            ))}
           </div>
+          {getFlowDateFields(app.flow).some(({ field }) => app[field]) && (
+            <div className="flex flex-col gap-y-1 text-xs">
+              {getFlowDateFields(app.flow).map(({ field, label }) => app[field] && (
+                <span key={field} className="text-secondary font-bold">{label}: {formatDateTime(app[field])}</span>
+              ))}
+            </div>
+          )}
 
           {/* 担当者変更 */}
           <div className="flex items-center gap-2">
@@ -580,11 +583,24 @@ function EditModal({ app, onClose, onSave, saving }) {
   const [baseFlow, setBaseFlow] = useState(inferBase(app.flow));
   const [internRoute, setInternRoute] = useState(inferRoute(app.flow));
   const [member, setMember] = useState(app.member);
+  const [stepIdx, setStepIdx] = useState(app.stepIdx ?? 0);
   const isIntern = baseFlow === "intern_eng";
+
+  const currentFlow = resolveFlow(baseFlow, internRoute);
+  const flowSteps = FLOWS[currentFlow] ?? [];
+
+  const handleFlowChange = (newBase) => {
+    setBaseFlow(newBase);
+    setStepIdx(0);
+  };
+  const handleRouteChange = (newRoute) => {
+    setInternRoute(newRoute);
+    setStepIdx(0);
+  };
 
   const handleSave = () => {
     if (!name) return;
-    onSave({ id: app.id, name, flow: resolveFlow(baseFlow, internRoute), source: resolveSource(baseFlow, internRoute), member });
+    onSave({ id: app.id, name, flow: currentFlow, source: resolveSource(baseFlow, internRoute), member, stepIdx });
   };
 
   useEffect(() => {
@@ -606,7 +622,7 @@ function EditModal({ app, onClose, onSave, saving }) {
           </div>
           <div>
             <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">フロー</label>
-            <select data-1p-ignore value={baseFlow} onChange={e => setBaseFlow(e.target.value)} className={inputCls}>
+            <select data-1p-ignore value={baseFlow} onChange={e => handleFlowChange(e.target.value)} className={inputCls}>
               {FLOW_OPTIONS.map(({ group, flows }) => (
                 <optgroup key={group} label={group}>
                   {flows.map(k => <option key={k} value={k}>{FLOW_OPTION_LABELS[k]}</option>)}
@@ -621,13 +637,21 @@ function EditModal({ app, onClose, onSave, saving }) {
                 {["採用サイト", "ゼロワン"].map(r => (
                   <button
                     key={r}
-                    onClick={() => setInternRoute(r)}
+                    onClick={() => handleRouteChange(r)}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors ${internRoute === r ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]" : "bg-white text-[var(--color-on-surface-variant)] border-[var(--color-outline-variant)]"}`}
                   >{r}</button>
                 ))}
               </div>
             </div>
           )}
+          <div>
+            <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">現在のステップ</label>
+            <select data-1p-ignore value={stepIdx} onChange={e => setStepIdx(Number(e.target.value))} className={inputCls}>
+              {flowSteps.map((s, i) => (
+                <option key={i} value={i}>{i + 1}. {s.label}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-wider block mb-1.5">担当者</label>
             <select data-1p-ignore value={member} onChange={e => setMember(e.target.value)} className={inputCls}>
@@ -997,7 +1021,7 @@ export default function App() {
   const editApp = async (form) => {
     setSaving(true);
     try {
-      const res = await apiPost({ action: "update", id: form.id, name: form.name, flow: form.flow, source: form.source, member: form.member });
+      const res = await apiPost({ action: "update", id: form.id, name: form.name, flow: form.flow, source: form.source, member: form.member, stepIdx: form.stepIdx });
       if (res.ok) {
         setApplicants(prev => prev.map(a => a.id === form.id ? { ...a, ...form } : a));
         setShowEdit(null);
