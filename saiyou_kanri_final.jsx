@@ -315,6 +315,11 @@ function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, on
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10, display: "flex", gap: 16, flexWrap: "wrap" }}>
             <span>応募経路: {app.source}</span>
             <span>応募日: {app.created}</span>
+            {app.stepUpdatedAt && (() => {
+              const days = Math.floor((Date.now() - new Date(app.stepUpdatedAt).getTime()) / 86400000);
+              const color = days >= 7 ? "#e53e3e" : days >= 3 ? "#dd6b20" : "#aaa";
+              return <span style={{ color, fontWeight: days >= 3 ? 700 : 400 }}>経過日数: {days}日</span>;
+            })()}
           </div>
 
           <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
