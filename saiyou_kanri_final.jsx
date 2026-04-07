@@ -278,7 +278,7 @@ function Card({ app, onAdvance, onReject, onEditNote, onEditMember, expanded, on
             <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a" }}>{app.name}</span>
             <Tag flow={app.flow} />
             {app.rejected && <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>終了</span>}
-            {!app.rejected && step?.id === "done" && <span style={{ fontSize: 11, color: "#43a047", fontWeight: 700 }}>✓ 採用完了</span>}
+            {!app.rejected && step?.id === "done" && <span style={{ fontSize: 11, color: "#43a047", fontWeight: 700 }}>✓ 完了</span>}
           </div>
           <StepBar flow={app.flow} stepIdx={app.stepIdx} />
         </div>
