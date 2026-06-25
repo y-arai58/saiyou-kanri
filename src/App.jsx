@@ -29,6 +29,7 @@ export default function App() {
     } catch { setFetchState("error"); }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   const advance = async (id, dateValue, dateField) => {

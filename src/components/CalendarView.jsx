@@ -157,7 +157,7 @@ export default function CalendarView({ applicants }) {
                     <span className={`w-2.5 h-2.5 flex-shrink-0 rounded-full ${ev.flow.startsWith("chuto") ? "bg-[var(--color-primary)]" : ev.flow.startsWith("shinsotsu") ? "bg-[var(--color-secondary)]" : "bg-[var(--color-tertiary-container)]"}`} />
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-[var(--color-on-surface)] truncate">{ev.name}</p>
-                      <p className="text-xs text-[var(--color-on-surface-variant)]">{ev.label}{timeStr && `　${timeStr}`}</p>
+                      <p className="text-xs text-[var(--color-on-surface-variant)]">{ev.label}{timeStr && ` ${timeStr}`}</p>
                     </div>
                   </li>
                 );

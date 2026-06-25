@@ -8,6 +8,12 @@ export default defineConfig([
   // dist: ビルド成果物 / 以下2つはアプリのソースではない残骸（GAS用・旧バックアップ）
   globalIgnores(['dist', 'gas_api_oauth_2.js', 'saiyou_kanri_final.jsx']),
   {
+    files: ['middleware.js'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+  },
+  {
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
