@@ -32,7 +32,7 @@ export default function middleware(request) {
   return new Response("認証が必要です", {
     status: 401,
     headers: {
-      "WWW-Authenticate": 'Basic realm="採用管理"',
+      "WWW-Authenticate": 'Basic realm="saiyou-kanri"',
     },
   });
 }
