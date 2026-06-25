@@ -5,7 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // dist: ビルド成果物 / 以下2つはアプリのソースではない残骸（GAS用・旧バックアップ）
+  globalIgnores(['dist', 'gas_api_oauth_2.js', 'saiyou_kanri_final.jsx']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

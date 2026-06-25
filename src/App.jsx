@@ -6,10 +6,8 @@ import Card from "./components/Card";
 import AddModal from "./components/AddModal";
 import EditModal from "./components/EditModal";
 import CalendarView from "./components/CalendarView";
-import LoginScreen from "./components/LoginScreen";
 
 export default function App() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("saiyou_auth") === "1");
   const [applicants, setApplicants] = useState([]);
   const [fetchState, setFetchState] = useState("idle");
   const [loadingId, setLoadingId] = useState(null);
@@ -32,8 +30,6 @@ export default function App() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
 
   const advance = async (id, dateValue, dateField) => {
     const app = applicants.find(a => a.id === id);

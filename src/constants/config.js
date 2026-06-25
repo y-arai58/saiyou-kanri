@@ -1,5 +1,4 @@
 export const GAS_URL = import.meta.env.VITE_GAS_URL;
-export const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD;
 
 export const FORMS = {
   chuto: { label: "中途用フォーム", url: "https://forms.gle/2hCrxjyyHc1D3n9h9" },
